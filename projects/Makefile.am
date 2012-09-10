@@ -20,6 +20,7 @@ SUBDIRS = \
 	FiniteStateModelChecker \
 	graphColoring \
 	HeaderFilesInclusion \
+	mpiAnalysis \
 	MPI_Tools \
 	MacroRewrapper \
 	OpenMP_Analysis \

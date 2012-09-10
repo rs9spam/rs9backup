@@ -52,7 +52,8 @@ namespace VirtualCFG {
     eckArithmeticIfLess, //! Edge for the arithmetic if expression being less than zero
     eckArithmeticIfEqual, //! Edge for the arithmetic if expression being equal to zero
     eckArithmeticIfGreater, //! Edge for the arithmetic if expression being greater than zero
-    eckInterprocedural //! Edge spanning two procedures
+    eckInterprocedural, //! Edge spanning two procedures
+    eckMPI //! Edge spanning between MPI calls
   };
 
   //! A node in the control flow graph.  Each CFG node corresponds to an AST

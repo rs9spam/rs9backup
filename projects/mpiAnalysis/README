@@ -1,0 +1,5 @@
+
+This is an experimental project to use a Message Passing Interface Interprocedural Control Flow Graph (MPI-ICFG) with 
+parallel Message Passing Interface Control Flow Graph (pMPI-CFG).
+
+The basic idea is to 

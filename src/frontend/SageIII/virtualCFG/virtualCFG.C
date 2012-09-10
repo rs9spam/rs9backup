@@ -138,8 +138,11 @@ namespace VirtualCFG {
         case eckArithmeticIfGreater:
           s << "greater";
           break;
-    case eckInterprocedural:
+        case eckInterprocedural:  //interprocedural
           s << "interprocedural";
+          break;
+        case eckMPI:              // mpi edges
+          s << "mpi_call";
           break;
         default:
           s << "unknown";
