@@ -160,35 +160,29 @@ void MPICFG::buildCFG(CFGNode n,
 
 void MPICFG::buildMPIICFG()
 {
-	buildCFG();
-	std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
-	buildMPISend();
-	std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
-	buildMPIRecv();
-	std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
-	addMPIEdgestoICFG();
-	std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
-	//typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_t;
-	//foreach ( pair_t& p, alNodes)
-	//{
+  buildCFG();
+  buildMPISend();
+  buildMPIRecv();
+  addMPIEdgestoICFG();
 
-	//	alNodes[]
-		//alNodes[p.first]
-	  //all_nodes_[VirtualCFG::CFGNode(p.first.getNode(), 0)] = p.second;
-	//}
+  //std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
+  //typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_t;
+  //foreach ( pair_t& p, alNodes)
+  //{
+    //alNodes[];
+    //alNodes[p.first];
+    //all_nodes_[VirtualCFG::CFGNode(p.first.getNode(), 0)] = p.second;
+  //}
 }
 
 void MPICFG::buildMPISend()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); ++iter)
-  {
+  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); ++iter) {
     //std::cerr << "SGFUNCTINCALL " << count << " ##########################################" << endl;
-    if(isSgFunctionRefExp((iter->first).getNode()))
-    {
+    if(isSgFunctionRefExp((iter->first).getNode())) {
       //TODO use a smart value for all MPI_SEND VALUES....
       //std::cerr << "SGFUNCTINCALL ########################################## << (iter->first).toString() << " ####" << endl;
-      if( isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name() == "MPI_Send")
-      {
+      if( isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name() == "MPI_Send") {
          std::cerr << isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name()
                    << ".... real name .... ######################" << endl;
         mpiSendNodes[iter->first] = iter->second;
@@ -199,29 +193,32 @@ void MPICFG::buildMPISend()
 
 void MPICFG::buildMPIRecv()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); iter++)
-    if(isSgFunctionRefExp((iter->first).getNode()))
-    {
+  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); iter++) {
+    if(isSgFunctionRefExp((iter->first).getNode())) {
       //std::cerr << "SGFUNCTINCALL ##########################################" << endl;
       //TODO use a smart value for all MPI_RECV VALUES....
-      if( isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name() == "MPI_Recv" )
-      {
+      if( isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name() == "MPI_Recv" ) {
         std::cerr << isSgFunctionRefExp((iter->first).getNode())->get_symbol()->get_name()
                   << ".... real name .... ######################" << endl;
         mpiRecvNodes[iter->first] = iter->second;
       }
     }
+  }
 }
 
 void MPICFG::addMPIEdgestoICFG()
 {
   for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes.begin(); iter1 != mpiSendNodes.end(); iter1++)
-    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes.begin(); iter2 != mpiRecvNodes.end(); iter2++)
-    {
+    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes.begin(); iter2 != mpiRecvNodes.end(); iter2++) {
    	  SgDirectedGraphEdge* new_edge = new SgDirectedGraphEdge(iter1->second, iter2->second);
       new_edge->addNewAttribute("info", new CFGEdgeAttribute<CFGEdge>(CFGEdge((iter1->first), (iter2->first))));
       graph_->addDirectedEdge(new_edge);
       std::cerr << "HELLO MPI EDGES   !!!!!!!!!!!!!!!!" << endl << endl;
+
+//      SgDirectedGraphEdge* new_edge1 = new SgDirectedGraphEdge(iter1->second, iter2->second);
+//      new_edge1->addNewAttribute("info", new CFGEdgeAttribute<CFGEdge>(CFGEdge((iter1->first), (iter2->first))));
+//      graph_->addDirectedEdge(new_edge1);
+//      std::cerr << "HELLO MPI EDGES 1   !!!!!!!!!!!!!!!!" << endl << endl;
     }
 }
 

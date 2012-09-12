@@ -381,6 +381,10 @@ namespace VirtualCFG {
                tgtIndex == SGCONSTRUCTORINITIALIZER_INTERPROCEDURAL_INDEX+1 &&
                !isSgConstructorInitializer(srcNode)) {
         return eckInterprocedural;
+    } else if (isSgFunctionRefExp(srcNode) && isSgFunctionRefExp(tgtNode) &&
+               (isSgFunctionRefExp(srcNode)->get_symbol()->get_name() == "MPI_Send") &&
+               (isSgFunctionRefExp(tgtNode)->get_symbol()->get_name() == "MPI_Recv")) {
+        return eckMPI;
     } else {
       // No key
       return eckUnconditional;
