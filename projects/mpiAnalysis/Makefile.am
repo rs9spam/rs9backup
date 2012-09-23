@@ -1,5 +1,11 @@
 include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 
+if ROSE_WITH_MPI_C
+
+SUBDIRS = staticMatching
+
+endif
+
 bin_PROGRAMS = mpiAnalysis
 mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h
 
@@ -44,5 +50,6 @@ EXTRA_DIST = $(ALL_TESTCODES) README
 clean-local:
 	rm -f *.o rose_*.* *.out *.dot
 	rm -rf QMTest
+
 
 
