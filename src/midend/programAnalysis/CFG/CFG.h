@@ -89,7 +89,7 @@ class BuildCFGTraverse : public ProcessAstTree
 
 
   // map AstNode pointers to graph node pointers: 
-  //   each compound statement (eg, loop, if, basic-block) maps to the last graph node containing its statements  
+  //   each compound statement (eg, loop, if, basic-block) maps to the last graph node containing its statements
   // startMap  and exitMap map stmt to the start graph node and to the exit (next)graph node respectively
   PtrMapWrap<void, Node> startMap, exitMap;
 

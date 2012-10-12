@@ -20,7 +20,6 @@ SUBDIRS = \
 	FiniteStateModelChecker \
 	graphColoring \
 	HeaderFilesInclusion \
-	mpiAnalysis \
 	MPI_Tools \
 	MacroRewrapper \
 	OpenMP_Analysis \
@@ -52,6 +51,12 @@ SUBDIRS = \
 
 if ROSE_WITH_ISL
   SUBDIRS += RosePolly
+endif
+
+# STRO (09/24/2012)
+# MPI analysis tool
+if ROSE_WITH_MPI_C
+  SUBDIRS += mpiAnalysis
 endif
 
 # ASR (09/04/2012)

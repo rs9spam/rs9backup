@@ -1,7 +1,7 @@
 // Example translator to generate dot files of virtual, interprocedural control flow graphs
 // Extended to build an mpi cfg
 #include "rose.h"
-#include "staticCFG.h"
+//#include "staticCFG.h"
 #include "mpiCFG.h"
 #include <string>
 
@@ -24,9 +24,8 @@ int main(int argc, char *argv[])
   string dotFileName1=fileName+"."+ mainDef->get_declaration()->get_name() +".MPIICFG.dot";
 
   MpiAnalysis::MPICFG mpi_cfg(mainDef);
-  //StaticCFG::InterproceduralCFG cfg(mainDef);
 
-  // Dump out the full CFG, including bookkeeping nodes
+  // Dump out the full MPI_CFG
   mpi_cfg.cfgToDot(mainDef, dotFileName1);
 
   // Call functions to refine the graph.......
