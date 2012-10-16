@@ -62,8 +62,13 @@ namespace VirtualMPICFG {
     //! An index to differentiate control flow points within a single AST node
     //! (for example, before and after the test of an if statement)
     //unsigned int index;
+    SgNode* node;
+    unsigned int index;
 
     public:
+    CFGNode(): node(0), index(0) {}
+    CFGNode(SgNode* node, unsigned int index = 0) : VirtualCFG::CFGNode(node){}
+
 
 //    //! Pretty string for Dot node labels, etc.
 //    std::string toString() const;
@@ -95,14 +100,14 @@ namespace VirtualMPICFG {
 
 
   class CFGEdge : public VirtualCFG::CFGEdge {
-
+    CFGNode src, tgt;
     public:
 
     //! Constructor
-    //CFGEdge(CFGNode src, CFGNode tgt): src(src), tgt(tgt) { assert(src.getNode() != NULL && tgt.getNode() != NULL); }
+    CFGEdge(CFGNode src, CFGNode tgt): src(src), tgt(tgt) { assert(src.getNode() != NULL && tgt.getNode() != NULL); }
 
     //! Default constructor. Used for compatibility with containers
-    //CFGEdge() {}
+    CFGEdge() {}
 
 //    //! Pretty string for Dot node labels, etc.
 //    std::string toString() const;

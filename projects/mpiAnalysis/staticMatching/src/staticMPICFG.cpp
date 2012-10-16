@@ -187,7 +187,8 @@ void CFG::buildCFG(NodeT n, std::map<NodeT, SgGraphNode*>& all_nodes, std::set<N
 
 VirtualMPICFG::CFGNode CFG::toCFGNode(SgGraphNode* node)
 {
-    return VirtualMPICFG::CFGNode(node->get_SgNode(), getIndex(node));
+//    return VirtualMPICFG::CFGNode(node->get_SgNode(), getIndex(node));
+  return VirtualMPICFG::CFGNode(node->get_SgNode(), getIndex(node));
 }
 
 SgGraphNode* CFG::cfgForBeginning(SgNode* node)
