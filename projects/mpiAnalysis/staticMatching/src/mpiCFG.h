@@ -91,10 +91,28 @@ class MPICFG : public CFG
     bool isMPIRecv(SgNode* expr);
     //! Add all possible MPI Edges to MPI_ICFG
     void addMPIEdgestoICFG();
-    //! Removes communication Edges with non matching data types
-    void refineTypeMatch();
+    //! remove the SgDirectedGraphEdge from the MPI_ICFG
+    void removeMPIEdge(SgDirectedGraphEdge* edge);
+
+    //! Removes communication Edges with non matching constant data types
+    //! Removes communication Edges with non matching constant data size
+    //! Removes communication Edges with non matching constant communication tag
+    //! Removes communication Edges with non matching constant communication world
+    void refineConstantMatch();
+
     //! Compares the data type of the MPI_Send and MPI_Recv node
-    bool checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node);
+    //!returns false only if constant Type Arguments do not match!
+    bool checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    //! Compares the data type of the MPI_Send and MPI_Recv node
+    //!returns false only if constant Size Arguments do not match!
+    bool checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    //! Compares the data type of the MPI_Send and MPI_Recv node
+    //!returns false only if constant Tag Arguments do not match!
+    bool checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    //! Compares the data type of the MPI_Send and MPI_Recv node
+    //!returns false only if constant CommWorld Arguments do not match!
+    bool checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+
     //! Returns the corresponding SGNode from SgGraphNode
     const CFGNode getCFGNode(SgGraphNode* node);
 };
@@ -102,15 +120,15 @@ class MPICFG : public CFG
 class MPIInfo
 {
 private:
-  std::vector<CFGEdge>* mpi_outedges;
-  std::vector<CFGEdge>* mpi_inedges;
+//  std::vector<CFGEdge>* mpi_outedges;
+//  std::vector<CFGEdge>* mpi_inedges;
 
 public:
-  MPIInfo() {mpi_outedges=0; mpi_inedges=0;}
-  std::vector<CFGEdge>* getMpiOutEdges();
-  std::vector<CFGEdge>* getMpiInEdges();
-  void addMpiOutEdge();
-  void addMpiInEdge();
+//  MPIInfo() {mpi_outedges=0; mpi_inedges=0;}
+//  std::vector<CFGEdge>* getMpiOutEdges();
+//  std::vector<CFGEdge>* getMpiInEdges();
+//  void addMpiOutEdge();
+//  void addMpiInEdge();
 };
 
 // The following are some auxiliary functions, since SgGraphNode cannot provide them.

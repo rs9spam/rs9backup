@@ -12,10 +12,11 @@ namespace MpiAnalysis
 {
 
 //void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
-//  // Makes a CFG edge, adding appropriate labels
+//  // Creates a CFG edge and adding appropriate labels.
 //
 //}
 
+//=============================================================================================
 void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   // Makes a CFG edge, adding appropriate labels
   SgNode* fromNode = from.getNode();
@@ -23,7 +24,9 @@ void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   SgNode* toNode = to.getNode();
 
   // Exit early if the edge should not exist because of a control flow discontinuity
-  if (fromIndex == 1 && (isSgGotoStatement(fromNode) || isSgBreakStmt(fromNode) || isSgContinueStmt(fromNode))) {
+  if (fromIndex == 1 && (isSgGotoStatement(fromNode) ||
+      isSgBreakStmt(fromNode) || isSgContinueStmt(fromNode)))
+  {
     return;
   }
   if (isSgReturnStmt(fromNode) && toNode == fromNode->get_parent()) {
@@ -41,6 +44,7 @@ void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   result.push_back(CFGEdge(from, to));
 }
 
+//=============================================================================================
 void MPICFG::buildFullCFG()
 {
 	std::set<VirtualCFG::CFGNode> explored;
@@ -68,6 +72,7 @@ void MPICFG::buildFullCFG()
 	neededStart_ = start;
 }
 
+//=============================================================================================
 void MPICFG::buildCFG(CFGNode n,
                        std::map<CFGNode, SgGraphNode*>& all_nodes,
                        std::set<CFGNode>& explored,
@@ -153,13 +158,14 @@ void MPICFG::buildCFG(CFGNode n,
     }
 }
 
+//=============================================================================================
 void MPICFG::buildMPIICFG()
 {
   buildFullCFG();
   buildMPISend();
   buildMPIRecv();
   addMPIEdgestoICFG();
-  refineTypeMatch();
+  refineConstantMatch();
 
 //  std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
 //  typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_t;
@@ -171,9 +177,12 @@ void MPICFG::buildMPIICFG()
 //  }
 }
 
+//=============================================================================================
 void MPICFG::buildMPISend()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); ++iter) {
+  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin();
+      iter != all_nodes_.end(); ++iter)
+  {
     if(isSgFunctionCallExp((iter->first).getNode()))
       if( ((iter->first).getIndex() == 1)  && isMPISend((iter->first).getNode()))
       {
@@ -182,6 +191,7 @@ void MPICFG::buildMPISend()
   }
 }
 
+//=============================================================================================
 bool MPICFG::isMPISend(SgNode* node)
 {
   string name;
@@ -199,15 +209,19 @@ bool MPICFG::isMPISend(SgNode* node)
   return false;
 }
 
+//=============================================================================================
 void MPICFG::buildMPIRecv()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin(); iter != all_nodes_.end(); ++iter) {
+  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin();
+      iter != all_nodes_.end(); ++iter)
+  {
     if(isSgFunctionCallExp((iter->first).getNode()))
       if( ((iter->first).getIndex() == 1)  && isMPIRecv((iter->first).getNode()))
     	  mpiRecvNodes_[iter->first] = iter->second;
   }
 }
 
+//=============================================================================================
 bool MPICFG::isMPIRecv(SgNode* node)
 {
   string name;
@@ -227,22 +241,27 @@ bool MPICFG::isMPIRecv(SgNode* node)
   return false;
 }
 
+//=============================================================================================
 void MPICFG::addMPIEdgestoICFG()
 {
 //  //create NewAttribute for SgNode (for send nodes) (class MPIInfo)
-//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin(); iter1 != mpiSendNodes_.end(); iter1++)
+//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
+//      iter1 != mpiSendNodes_.end(); iter1++)
 //  {
 //    MPIInfo mpi_info = new MPIInfo();
 //  }
 //  //create NewAttribute for SgNode (for Recv nodes) (class MPIInfo)
-//  for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin(); iter2 != mpiRecvNodes_.end(); iter2++)
+//  for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
+//      iter2 != mpiRecvNodes_.end(); iter2++)
 //  {
 //
 //  }
 
-  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin(); iter1 != mpiSendNodes_.end(); iter1++)
+  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
+      iter1 != mpiSendNodes_.end(); iter1++)
 
-    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin(); iter2 != mpiRecvNodes_.end(); iter2++)
+    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
+        iter2 != mpiRecvNodes_.end(); iter2++)
     {
       SgDirectedGraphEdge* new_graph_edge = new SgDirectedGraphEdge(iter1->second, iter2->second);
       CFGEdge new_cfg_edge = CFGEdge((iter1->first), (iter2->first));
@@ -257,22 +276,24 @@ void MPICFG::addMPIEdgestoICFG()
     }
 }
 
-void MPICFG::refineTypeMatch()
+//=============================================================================================
+void MPICFG::refineConstantMatch()
 {
+  std::cerr << endl << "Refine: Constant Argument Matching" << "\n";
   map<CFGNode, SgGraphNode*>::iterator node_iter;
   std::vector<SgDirectedGraphEdge*>::iterator edge_iter;
   for(node_iter = mpiSendNodes_.begin(); node_iter != mpiSendNodes_.end(); node_iter++)
   {
-    std::cerr<< "send node\n";
     std::vector<SgDirectedGraphEdge*> out_edges = mpiOutEdges((node_iter->second));
     for(edge_iter = out_edges.begin(); edge_iter != out_edges.end(); edge_iter++)
     {
-      std::cerr<< "  recv node\n";
-      if(!checkMatchTypes((*edge_iter)->get_from(),(*edge_iter)->get_to()))
+      if( (!checkConstTypeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
+          (!checkConstSizeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
+          (!checkConstTagMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
+          (!checkConstCommWorldMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) )
       {
-        //removeMPIedge(edge_iter->first);
+        removeMPIEdge(*edge_iter);
       }
-
     }
 //    CFGNode tempnode = node_iter->first;
 //    vector<CFGEdge> oedges = tempnode.outEdges();
@@ -310,6 +331,13 @@ void MPICFG::refineTypeMatch()
   }
 }
 
+//=============================================================================================
+void MPICFG::removeMPIEdge(SgDirectedGraphEdge* edge)
+{
+  graph_->removeDirectedEdge(edge);
+}
+
+//=============================================================================================
 SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 {
   SgExpressionPtrList::iterator exp_iter;
@@ -328,6 +356,7 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
   return NULL;
 }
 
+//=============================================================================================
 //bool MPICFG::checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node)
 //{
 //  CFGNode from = getCFGNode(send_node);
@@ -338,9 +367,11 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //  if(isSgFunctionCallExp(from.getNode()) && isSgFunctionCallExp(to.getNode()))
 //  {
 //    std::cerr << "send/recv are SgCall Expressions" << endl;
-//    SgExpressionPtrList fromargsptr = isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
+//    SgExpressionPtrList fromargsptr =
+//      isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
 //    SgExpressionPtrList::iterator from_exp_iter;
-//    SgExpressionPtrList toargsptr = isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
+//    SgExpressionPtrList toargsptr =
+//      isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
 //    SgExpressionPtrList::iterator to_exp_iter;
 //
 //    if(fromargsptr.size() >= MPI_NUM_SEND_EXP && toargsptr.size() >= MPI_NUM_RECV_EXP)
@@ -368,8 +399,10 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //
 //      if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp))
 //      {
-////        std::cerr << "Symbol name: " << isSgVarRefExp(from_exp)->get_symbol()->get_name().str() << endl;
-////        std::cerr << "Symbol name: " << isSgVarRefExp(to_exp)->get_symbol()->get_name().str() << endl;
+////        std::cerr << "Symbol name: "
+////                  << isSgVarRefExp(from_exp)->get_symbol()->get_name().str() << endl;
+////        std::cerr << "Symbol name: "
+////                  << isSgVarRefExp(to_exp)->get_symbol()->get_name().str() << endl;
 //        //TODO ... #define a value for that .. check if it's always ompi_mpi ...
 //        std::string ompi = "ompi_mpi";
 //        std::string from_s = isSgVarRefExp(from_exp)->get_symbol()->get_name().str();
@@ -385,9 +418,9 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //  return false;
 //}
 
-bool MPICFG::checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node)
+//=============================================================================================
+bool MPICFG::checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 {
-  std::cerr << endl << "Refine: Match Types" << endl;
   CFGNode from = getCFGNode(send_node);
   CFGNode to = getCFGNode(recv_node);
   if ((from == NULL) || (to == NULL))
@@ -395,18 +428,17 @@ bool MPICFG::checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node)
 
   if(isSgFunctionCallExp(from.getNode()) && isSgFunctionCallExp(to.getNode()))
   {
-    SgExpressionPtrList fromargsptr = isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
-    SgExpressionPtrList toargsptr = isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
+    SgExpressionPtrList fromargsptr =
+        isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
+    SgExpressionPtrList toargsptr =
+        isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
 
     SgExpression* from_exp = getExpAt(fromargsptr ,MPI_TYPE_ARG);
-    if(from_exp == NULL)
-      return false;
+    SgExpression* to_exp = getExpAt(toargsptr ,MPI_TYPE_ARG);
+    if((from_exp == NULL) || (to_exp == NULL))
+      ROSE_ASSERT (!"Cannot find type SgExpression*");
     while(isSgUnaryOp(from_exp))
       from_exp = isSgUnaryOp(from_exp)->get_operand();
-
-    SgExpression* to_exp = getExpAt(toargsptr ,MPI_TYPE_ARG);
-    if(to_exp == NULL)
-      return false;
     while(isSgUnaryOp(to_exp))
       to_exp = isSgUnaryOp(to_exp)->get_operand();
 //    std::cerr << "CLASS: " << (from_exp)->sage_class_name() << endl;
@@ -416,22 +448,178 @@ bool MPICFG::checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node)
 
     if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp))
     {
-//      std::cerr << "Symbol name: " << isSgVarRefExp(from_exp)->get_symbol()->get_name().str() << endl;
-//      std::cerr << "Symbol name: " << isSgVarRefExp(to_exp)->get_symbol()->get_name().str() << endl;
+//      std::cerr << "Symbol name: "
+//                << isSgVarRefExp(from_exp)->get_symbol()->get_name().str() << endl;
+//      std::cerr << "Symbol name: "
+//                << isSgVarRefExp(to_exp)->get_symbol()->get_name().str() << endl;
       //TODO ... #define a value for that .. check if it's always ompi_mpi ...
       std::string ompi = "ompi_mpi";
       std::string from_s = isSgVarRefExp(from_exp)->get_symbol()->get_name().str();
       std::string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
       if(from_s == to_s && from_s.substr(0,ompi.size()) == ompi)
       {
-        std::cerr << "Send and Recv have same Type: " << from_s << endl;
+        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
+        //TODO ... set Type checked Flag at communication edge.
         return true;
+      }
+      if(from_s.substr(0,ompi.size()) == ompi && to_s.substr(0,ompi.size()) == ompi)
+      {
+        std::cerr << "Send and Recv have different constant types: "
+                  << from_s << " and " << to_s << endl;
+        return false;
       }
     }
   }
-  return false;
+  return true;
 }
 
+//=============================================================================================
+bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+{
+  CFGNode from = getCFGNode(send_node);
+  CFGNode to = getCFGNode(recv_node);
+  if ((from == NULL) || (to == NULL))
+    ROSE_ASSERT (!"Cannot find the SgGraphNode in the map");
+
+  if(isSgFunctionCallExp(from.getNode()) && isSgFunctionCallExp(to.getNode()))
+  {
+    SgExpressionPtrList fromargsptr =
+        isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
+    SgExpressionPtrList toargsptr =
+        isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
+
+    SgExpression* from_exp = getExpAt(fromargsptr ,MPI_SIZE_ARG);
+    SgExpression* to_exp = getExpAt(toargsptr ,MPI_SIZE_ARG);
+    if( (from_exp == NULL) || (to_exp == NULL) )
+      ROSE_ASSERT (!"Cannot find size SgExpression*");
+
+    if(isSgIntVal(from_exp) && isSgIntVal(to_exp))
+    {
+
+      int from_i = isSgIntVal(from_exp)->get_value();
+      int to_i = isSgIntVal(to_exp)->get_value();
+      if(from_i == to_i)
+      {
+        std::cerr << "Send and Recv have same constant size: " << from_i << endl;
+        //TODO ... set Type checked Flag at communication edge.
+        return true;
+      }
+      if(from_i != to_i)
+      {
+        std::cerr << "Send and Recv have different constant size: "
+                  << from_i << " and " << to_i << endl;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+//=============================================================================================
+bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+{
+  CFGNode from = getCFGNode(send_node);
+  CFGNode to = getCFGNode(recv_node);
+  if ((from == NULL) || (to == NULL))
+    ROSE_ASSERT (!"Cannot find the SgGraphNode in the map");
+
+  if(isSgFunctionCallExp(from.getNode()) && isSgFunctionCallExp(to.getNode()))
+  {
+    SgExpressionPtrList fromargsptr =
+        isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
+    SgExpressionPtrList toargsptr =
+        isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
+
+    SgExpression* from_exp = getExpAt(fromargsptr ,MPI_TAG_ARG);
+    SgExpression* to_exp = getExpAt(toargsptr ,MPI_TAG_ARG);
+    if( (from_exp == NULL) || (to_exp == NULL) )
+      ROSE_ASSERT (!"Cannot find tag SgExpression*");
+
+    if(isSgIntVal(from_exp) && isSgIntVal(to_exp))
+    {
+      int from_i = isSgIntVal(from_exp)->get_value();
+      int to_i = isSgIntVal(to_exp)->get_value();
+      if(from_i == to_i)
+      {
+        std::cerr << "Send and Recv have same constant tag: " << from_i << endl;
+        //TODO ... set Type checked Flag at communication edge.
+        return true;
+      }
+      if(from_i != to_i)
+      {
+        std::cerr << "Send and Recv have different constant tags: "
+                  << from_i << " and " << to_i << endl;
+        return false;
+      }
+    }
+    if(isSgMinusOp(from_exp))
+      if(isSgIntVal(isSgMinusOp(from_exp)->get_operand()))
+        if(isSgIntVal(isSgMinusOp(from_exp)->get_operand())->get_value() == 1)
+        {
+          std::cerr << "Send with MPI_ANY_TAG: " << endl;
+          //TODO ... set Type checked Flag at communication edge.
+          return true;
+        }
+    if(isSgMinusOp(to_exp))
+      if(isSgIntVal(isSgMinusOp(to_exp)->get_operand()))
+        if(isSgIntVal(isSgMinusOp(to_exp)->get_operand())->get_value() == 1)
+        {
+          std::cerr << "Recv with MPI_ANY_TAG: " << endl;
+          //TODO ... set Type checked Flag at communication edge.
+          return true;
+        }
+  }
+  return true;
+}
+
+//=============================================================================================
+bool MPICFG::checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+{
+  CFGNode from = getCFGNode(send_node);
+  CFGNode to = getCFGNode(recv_node);
+  if ((from == NULL) || (to == NULL))
+    ROSE_ASSERT (!"Cannot find the SgGraphNode in map");
+
+  if(isSgFunctionCallExp(from.getNode()) && isSgFunctionCallExp(to.getNode()))
+  {
+    SgExpressionPtrList fromargsptr =
+        isSgFunctionCallExp(from.getNode())->get_args()->get_expressions();
+    SgExpressionPtrList toargsptr =
+        isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
+
+    SgExpression* from_exp = getExpAt(fromargsptr ,MPI_COMM_WORLD_ARG);
+    SgExpression* to_exp = getExpAt(toargsptr ,MPI_COMM_WORLD_ARG);
+    if((from_exp == NULL) || (to_exp == NULL))
+      ROSE_ASSERT (!"Cannot find CommWorld SgExpression*");
+    while(isSgUnaryOp(from_exp))
+      from_exp = isSgUnaryOp(from_exp)->get_operand();
+    while(isSgUnaryOp(to_exp))
+      to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+    if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp))
+    {
+      //TODO ... #define a value for that .. check if it's always ompi_mpi ...
+      std::string ompi = "ompi_mpi";
+      std::string from_s = isSgVarRefExp(from_exp)->get_symbol()->get_name().str();
+      std::string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
+      if(from_s == to_s && from_s.substr(0,ompi.size()) == ompi)
+      {
+        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
+        //TODO ... set Type checked Flag at MPI Send and MPI Recv nodes.
+        return true;
+      }
+      if(from_s.substr(0,ompi.size()) == ompi && to_s.substr(0,ompi.size()) == ompi)
+      {
+        std::cerr << "Send and Recv have different constant types: "
+                  << from_s << " and " << to_s << endl;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+//=============================================================================================
 const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
 {
   map<CFGNode, SgGraphNode*>::iterator iter;
@@ -442,6 +630,7 @@ const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
   return NULL;
 }
 
+//=============================================================================================
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
 {
   std::vector<SgDirectedGraphEdge*> out_edges = outEdges(dynamic_cast<SgGraphNode*>(node));
@@ -450,13 +639,15 @@ std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
   for(iter = out_edges.begin(); iter != out_edges.end(); iter++)
   {
     //remove not mpi_nodes from vector
-    CFGEdgeAttribute<bool>* mpi_info_attr = dynamic_cast<CFGEdgeAttribute<bool>*>((*iter)->getAttribute("mpi_info"));
+    CFGEdgeAttribute<bool>* mpi_info_attr =
+        dynamic_cast<CFGEdgeAttribute<bool>*>((*iter)->getAttribute("mpi_info"));
     if(mpi_info_attr)
       mpi_out_edges.push_back(*iter);
   }
   return std::vector<SgDirectedGraphEdge*>(mpi_out_edges.begin(), mpi_out_edges.end());
 }
 
+//=============================================================================================
 std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node)
 {
   std::vector<SgDirectedGraphEdge*> in_edges = inEdges(dynamic_cast<SgGraphNode*>(node));
@@ -465,7 +656,8 @@ std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node)
   for(iter = in_edges.begin(); iter != in_edges.end(); iter++)
   {
     //remove not mpi_nodes from vector
-    CFGEdgeAttribute<bool>* mpi_info_attr = dynamic_cast<CFGEdgeAttribute<bool>*>((*iter)->getAttribute("mpi_info"));
+    CFGEdgeAttribute<bool>* mpi_info_attr =
+        dynamic_cast<CFGEdgeAttribute<bool>*>((*iter)->getAttribute("mpi_info"));
     if(mpi_info_attr)
       mpi_in_edges.push_back(*iter);
   }
