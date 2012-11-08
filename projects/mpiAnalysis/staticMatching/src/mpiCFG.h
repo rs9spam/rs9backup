@@ -8,6 +8,11 @@
 #include <set>
 #include <string>
 #include "mpiCFG.h"
+#include "dataflow.h"
+
+#include "latticeFull.h"
+#include "liveDeadVarAnalysis.h"
+#include "constantPropagation.h"
 
 #define MPI_NUM_SEND_EXP 6
 #define MPI_NUM_RECV_EXP 7
@@ -34,9 +39,13 @@ using VirtualCFG::CFGEdge;
 //using VirtualMPICFG::CFGNode;
 //using VirtualMPICFG::CFGEdge;
 
+typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_n;
+
 //CFG is from StaticCFG
 class MPICFG : public CFG
 {
+  IntraProceduralDataflow* const_prop_;
+
   protected:
     virtual void buildCFG(CFGNode n,
                   std::map<CFGNode, SgGraphNode*>& all_nodes,
@@ -46,11 +55,12 @@ class MPICFG : public CFG
     MPICFG() : CFG() {}
 
     //! The valid nodes are SgProject, SgStatement, SgExpression and SgInitializedName
-    MPICFG(SgNode* node, bool is_filtered = false)
+    MPICFG(SgNode* node, IntraProceduralDataflow* intraDataflowAnalysis, bool is_filtered = false)
       : CFG() {
         graph_ = NULL;
         is_filtered_ = is_filtered;
         start_ = node;
+        const_prop_ = intraDataflowAnalysis;
         buildMPIICFG();
       }
     SgNode* getEntry()
@@ -113,9 +123,30 @@ class MPICFG : public CFG
     //!returns false only if constant CommWorld Arguments do not match!
     bool checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
+    bool hasConstValue(SgNode* node);
+    int getConstPropValue(SgNode* node);
+
     //! Returns the corresponding SGNode from SgGraphNode
     const CFGNode getCFGNode(SgGraphNode* node);
 };
+
+
+//class MPICFG_BWDataflow  : virtual public IntraProceduralDataflow
+//{
+//private:
+//
+//public:
+//
+//
+//};
+//
+//class MPICFG_FWDataflow : virtual public IntraProceduralDataflow
+//{
+//private:
+//
+//public:
+//
+//};
 
 class MPIInfo
 {
@@ -134,6 +165,8 @@ public:
 // The following are some auxiliary functions, since SgGraphNode cannot provide them.
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node);
 std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node);
+
+
 
 } // end of namespace MpiAnalysis
 

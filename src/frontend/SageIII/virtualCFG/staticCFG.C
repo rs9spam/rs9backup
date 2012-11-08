@@ -288,30 +288,71 @@ std::vector<SgDirectedGraphEdge*> CFG::getInEdges(SgGraphNode* node)
     return std::vector<SgDirectedGraphEdge*>(edges.begin(), edges.end());
 }
 
-void CFG::processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored)
+//void CFG::processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored)
+//{
+//  processNodes(o,n,explored,false);
+//}
+
+void CFG::processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored)//, bool debug)
 {
     if (explored.count(n) > 0)
         return;
     explored.insert(n);
 
+//    printNodePlusEdges(o, n, debug);
     printNodePlusEdges(o, n);
 
     std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(n);
-    foreach (SgDirectedGraphEdge* e, out_edges)
-        processNodes(o, e->get_to(), explored);
+//    if(out_edges.size() >= 1)
+//    {
+//      std::cerr << "looks like MPI Send " << out_edges.size() << "\n";
+//    foreach (SgDirectedGraphEdge* e, out_edges)
+//        processNodes(o, e->get_to(), explored, true);
+//
+//          std::cerr << "passed all send out edges " << out_edges.size() << "\n";
+//    }
+//    else
+//    {
+      foreach (SgDirectedGraphEdge* e, out_edges)
+              processNodes(o, e->get_to(), explored);
+//    }
+
 
     std::set<SgDirectedGraphEdge*> in_edges = graph_->computeEdgeSetIn(n);
-    foreach (SgDirectedGraphEdge* e, in_edges)
-        processNodes(o, e->get_from(), explored);
+//    if(in_edges.size() >=1)
+//    {
+//          std::cerr << "looks like MPI Recv " << in_edges.size() << "\n";
+//    foreach (SgDirectedGraphEdge* e, in_edges)
+//        processNodes(o, e->get_from(), explored, true);
+//
+//          std::cerr << "passed all recv in edges " << in_edges.size() << "\n";
+//    }
+//    else
+//    {
+      foreach (SgDirectedGraphEdge* e, in_edges)
+              processNodes(o, e->get_from(), explored);
+//    }
 }
 
-void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)
+//void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)
+//{
+//  printNodePlusEdges(o,node,false);
+//}
+
+void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)//, bool debug)
 {
+//    debug? (std::cerr << "PrintNode\n") : debug=false;
     printNode(o, node);
+//    debug? (std::cerr << "PrintNode worked !!!\n") : debug=false;
 
     std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(node);
+//    debug? (std::cerr << "Out_edges size: " << out_edges.size()) : debug = false;
     foreach (SgDirectedGraphEdge* e, out_edges)
+    {
+//      debug? (std::cerr << "PrintEdge\n") : debug=false;
         printEdge(o, e, false);
+//        debug? (std::cerr << "PrintEdge worked !!!\n") : debug=false;
+    }
 
 #ifdef DEBUG
     std::set<SgDirectedGraphEdge*> in_edges = graph_->computeEdgeSetIn(node);

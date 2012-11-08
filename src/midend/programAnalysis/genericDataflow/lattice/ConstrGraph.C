@@ -194,7 +194,7 @@ ConstrGraph::ConstrGraph(const set<varAffineInequality>& ineqs,
 //    n - a Dataflow node this ConstrGraph corresponds to
 //    state - the NodeState of node n
 //    annotName/annotVal - the annotation that will be associated with all variables live at node n
-// initialized - If false, starts this ConstrGraph as uninitialized. If false, starts it at bottom.
+// initialized - If true, starts this ConstrGraph as uninitialized. If false, starts it at bottom.
 void ConstrGraph::initCG(const Function& func, const set<NodeDesc>& nodes, bool initialized, string indent)
 {
         // Start this constraint graph as Uninitialized or Bottom, as requested

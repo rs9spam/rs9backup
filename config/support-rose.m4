@@ -2178,6 +2178,9 @@ projects/mpiAnalysis/Makefile
 projects/mpiAnalysis/staticMatching/Makefile
 projects/mpiAnalysis/staticMatching/src/Makefile
 projects/mpiAnalysis/staticMatching/tests/Makefile
+projects/mpiAnalysis/simpleStaticMarking/Makefile
+projects/mpiAnalysis/simpleStaticMarking/src/Makefile
+projects/mpiAnalysis/simpleStaticMarking/tests/Makefile
 projects/vectorization/Makefile
 projects/vectorization/src/Makefile
 projects/vectorization/tests/Makefile

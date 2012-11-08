@@ -127,6 +127,8 @@ protected:
     // The following methods are used to build a DOT file.
     virtual void processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored);
     virtual void printNodePlusEdges(std::ostream & o, SgGraphNode* node);
+//    virtual void processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored, bool debug);
+//    virtual void printNodePlusEdges(std::ostream & o, SgGraphNode* node, bool debug);
     virtual void printNode(std::ostream & o, SgGraphNode* node);
     virtual void printEdge(std::ostream & o, SgDirectedGraphEdge* edge, bool isInEdge);
 };

@@ -11,6 +11,7 @@ using namespace std;
 namespace MpiAnalysis
 {
 
+//=============================================================================================
 //void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
 //  // Creates a CFG edge and adding appropriate labels.
 //
@@ -110,13 +111,13 @@ void MPICFG::buildCFG(CFGNode n,
           Rose_STL_Container<SgFunctionDefinition*> defs;
           CallTargetSet::getDefinitionsForExpression(isSgExpression(sgnode), classHierarchy, defs);
           if (defs.size() == 0) {
-            std::cerr << sgnode->get_file_info()->get_filenameString()
-                      << ":"
-                      << sgnode->get_file_info()->get_line()
-                      << " warning: CallGraph found no definition(s) for "
-                      << sgnode->class_name()
-                      << ". Skipping interprocedural behavior."
-                      << std::endl;
+//            std::cerr << sgnode->get_file_info()->get_filenameString()
+//                      << ":"
+//                      << sgnode->get_file_info()->get_line()
+//                      << " warning: CallGraph found no definition(s) for "
+//                      << sgnode->class_name()
+//                      << ". Skipping interprocedural behavior."
+//                      << std::endl;
             outEdges = n.outEdges();
           } else {
             foreach (SgFunctionDefinition* def, defs) {
@@ -153,9 +154,7 @@ void MPICFG::buildCFG(CFGNode n,
     }
 
     foreach (const CFGNode& target, targets)
-    {
         buildCFG(target, all_nodes, explored, classHierarchy);
-    }
 }
 
 //=============================================================================================
@@ -166,28 +165,27 @@ void MPICFG::buildMPIICFG()
   buildMPIRecv();
   addMPIEdgestoICFG();
   refineConstantMatch();
+  //pruneCfgUsingSimpleConstantPropagation ... added to the constant Match refinement
+  //TODO: implement this functions ...
 
-//  std::cerr << "DEBUG build MPIICFG ##########################################" << endl;
-//  typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_t;
-//  foreach ( pair_t& p, alNodes)
-//  {
-//    alNodes[];
-//    alNodes[p.first];
-//    all_nodes_[VirtualCFG::CFGNode(p.first.getNode(), 0)] = p.second;
-//  }
+  //developeProcess_sets:
+  //start a constant propagation like functionality to create another analysis what adds
+  //lattices with process set information to every mpi node.
+
+  //refineSourceParameter()   //process sets required
 }
 
 //=============================================================================================
 void MPICFG::buildMPISend()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin();
-      iter != all_nodes_.end(); ++iter)
-  {
-    if(isSgFunctionCallExp((iter->first).getNode()))
-      if( ((iter->first).getIndex() == 1)  && isMPISend((iter->first).getNode()))
-      {
-        mpiSendNodes_[iter->first] = iter->second;
+  foreach ( pair_n p, all_nodes_) {
+    if(isSgFunctionCallExp((p.first).getNode())) {
+      if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
+        mpiSendNodes_[p.first] = p.second;
+        //TODO
+//        std::cerr<< "SIZE: " << mpiSendNodes_.size() << endl;
       }
+    }
   }
 }
 
@@ -201,7 +199,7 @@ bool MPICFG::isMPISend(SgNode* node)
       if(name == "MPI_Send" || name == "MPI_Isend")
       {
         //TODO: remove DEBUG
-        std::cerr << name << endl;
+//        std::cerr << name << endl;
         return true;
       }
     }
@@ -212,12 +210,12 @@ bool MPICFG::isMPISend(SgNode* node)
 //=============================================================================================
 void MPICFG::buildMPIRecv()
 {
-  for(map<CFGNode, SgGraphNode*>::iterator iter = all_nodes_.begin();
-      iter != all_nodes_.end(); ++iter)
-  {
-    if(isSgFunctionCallExp((iter->first).getNode()))
-      if( ((iter->first).getIndex() == 1)  && isMPIRecv((iter->first).getNode()))
-    	  mpiRecvNodes_[iter->first] = iter->second;
+  foreach ( pair_n p, all_nodes_) {
+    if(isSgFunctionCallExp((p.first).getNode())) {
+      if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
+        mpiRecvNodes_[p.first] = p.second;
+      }
+    }
   }
 }
 
@@ -229,11 +227,12 @@ bool MPICFG::isMPIRecv(SgNode* node)
   {
     if( isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function()))
     {
-      name = isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())->get_symbol()->get_name();
+      name = isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())
+                                                         ->get_symbol()->get_name();
       if(name == "MPI_Recv" || name == "MPI_Irecv")
       {
         //TODO: remove DEBUG
-        std::cerr << name << endl;
+//        std::cerr << name << endl;
         return true;
       }
     }
@@ -257,29 +256,53 @@ void MPICFG::addMPIEdgestoICFG()
 //
 //  }
 
-  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
-      iter1 != mpiSendNodes_.end(); iter1++)
-
-    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
-        iter2 != mpiRecvNodes_.end(); iter2++)
-    {
-      SgDirectedGraphEdge* new_graph_edge = new SgDirectedGraphEdge(iter1->second, iter2->second);
-      CFGEdge new_cfg_edge = CFGEdge((iter1->first), (iter2->first));
+  foreach ( pair_n p_send, mpiSendNodes_) {
+    foreach ( pair_n p_recv, mpiRecvNodes_) {
+      SgDirectedGraphEdge* new_graph_edge =
+          new SgDirectedGraphEdge(p_send.second, p_recv.second, "anyname");
+      CFGEdge new_cfg_edge = CFGEdge((p_send.first), (p_recv.first));
+      //std::cerr << new_cfg_edge.toString() << endl;
       CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr = new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
       new_graph_edge->addNewAttribute("info", new_cfg_edge_attr);
       CFGEdgeAttribute<bool>* mpi_info_attr = new CFGEdgeAttribute<bool>(true);
       new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
+
       //Add edge to MPI_ICFG graph
       graph_->addDirectedEdge(new_graph_edge);
-
-      std::cerr << "Add MPI Edge" << endl;
+//     std::cerr << "Add MPI Edge..." << endl;
     }
+  }
+
+//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
+//      iter1 != mpiSendNodes_.end(); iter1++)
+//
+//    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
+//        iter2 != mpiRecvNodes_.end(); iter2++)
+//    {
+//      SgDirectedGraphEdge* new_graph_edge = new SgDirectedGraphEdge(iter1->second, iter2->second, "anyname");
+//      CFGEdge new_cfg_edge = CFGEdge((iter1->first), (iter2->first));
+//      //std::cerr << new_cfg_edge.toString() << endl;
+//      CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr = new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
+//      new_graph_edge->addNewAttribute("info", new_cfg_edge_attr);
+//      CFGEdgeAttribute<bool>* mpi_info_attr = new CFGEdgeAttribute<bool>(true);
+//      new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
+//
+//      //Add edge to MPI_ICFG graph
+//      graph_->addDirectedEdge(new_graph_edge);
+//
+//      //graph_->removeDirectedEdge(new_graph_edge);
+//
+//
+//      //graph_->addDirectedEdge(iter1->second, iter2->second, "mpi_info");
+//
+//      std::cerr << "Add MPI Edge..." << endl;
+//    }
 }
 
 //=============================================================================================
 void MPICFG::refineConstantMatch()
 {
-  std::cerr << endl << "Refine: Constant Argument Matching" << "\n";
+//  std::cerr << endl << "Refine: Constant Argument Matching" << "\n";
   map<CFGNode, SgGraphNode*>::iterator node_iter;
   std::vector<SgDirectedGraphEdge*>::iterator edge_iter;
   for(node_iter = mpiSendNodes_.begin(); node_iter != mpiSendNodes_.end(); node_iter++)
@@ -288,12 +311,14 @@ void MPICFG::refineConstantMatch()
     for(edge_iter = out_edges.begin(); edge_iter != out_edges.end(); edge_iter++)
     {
       if( (!checkConstTypeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
-          (!checkConstSizeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
+//          (!checkConstSizeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
           (!checkConstTagMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
           (!checkConstCommWorldMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) )
       {
         removeMPIEdge(*edge_iter);
+//        std::cerr << "removing MPI Edge because of missmatch\n";
       }
+//      std::cerr << "------------------------------------------------------\n";
     }
 //    CFGNode tempnode = node_iter->first;
 //    vector<CFGEdge> oedges = tempnode.outEdges();
@@ -334,6 +359,7 @@ void MPICFG::refineConstantMatch()
 //=============================================================================================
 void MPICFG::removeMPIEdge(SgDirectedGraphEdge* edge)
 {
+  //isSgGraphNode(edge->get_from())
   graph_->removeDirectedEdge(edge);
 }
 
@@ -458,14 +484,14 @@ bool MPICFG::checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
       std::string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
       if(from_s == to_s && from_s.substr(0,ompi.size()) == ompi)
       {
-        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
+//        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
         //TODO ... set Type checked Flag at communication edge.
         return true;
       }
       if(from_s.substr(0,ompi.size()) == ompi && to_s.substr(0,ompi.size()) == ompi)
       {
-        std::cerr << "Send and Recv have different constant types: "
-                  << from_s << " and " << to_s << endl;
+//        std::cerr << "Send and Recv have different constant types: "
+//                  << from_s << " and " << to_s << endl;
         return false;
       }
     }
@@ -495,25 +521,84 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 
     if(isSgIntVal(from_exp) && isSgIntVal(to_exp))
     {
-
       int from_i = isSgIntVal(from_exp)->get_value();
       int to_i = isSgIntVal(to_exp)->get_value();
-      if(from_i == to_i)
+      return (from_i == to_i)? true : false;
+//      if(from_i == to_i)
+//      {
+//        std::cerr << "Send and Recv have same constant size: " << from_i << endl;
+//        //TODO ... set Type checked Flag at communication edge.
+//        return true;
+//      }
+//      else
+//      {
+//        std::cerr << "Send and Recv have different constant size: "
+//                  << from_i << " and " << to_i << endl;
+//        return false;
+//      }
+    }
+    else if(isSgIntVal(from_exp))//check the values from initial Constant propagation
+    {
+//      std::cerr << "check for constant propagation value" << endl;
+      while(isSgUnaryOp(to_exp))
+        to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+      if(isSgVarRefExp(to_exp) && hasConstValue(isSgNode(to_exp)))
       {
-        std::cerr << "Send and Recv have same constant size: " << from_i << endl;
-        //TODO ... set Type checked Flag at communication edge.
-        return true;
+        int from_i = getConstPropValue(to_exp);
+        int to_i = isSgIntVal(to_exp)->get_value();
+        return (from_i == to_i) ? true : false;
       }
-      if(from_i != to_i)
+    }
+    else if(isSgIntVal(to_exp))
+    {
+//      std::cerr << "check for constant propagation value" << endl;
+      while(isSgUnaryOp(from_exp))
+        from_exp = isSgUnaryOp(from_exp)->get_operand();
+
+      if(isSgVarRefExp(from_exp))
       {
-        std::cerr << "Send and Recv have different constant size: "
-                  << from_i << " and " << to_i << endl;
-        return false;
+        if(hasConstValue(isSgNode(from_exp)))
+        {
+          //compare const values
+          int from_i = getConstPropValue(from_exp);
+          int to_i = isSgIntVal(to_exp)->get_value();
+          return (from_i == to_i) ? true : false;
+//          if(from_i == to_i)
+//          {
+//            std::cerr << "Send and Recv have same constant size: " << from_i << endl;
+//            //TODO ... set Type checked Flag at communication edge.
+//            return true;
+//          }
+//          else
+//          {
+//            std::cerr << "Send and Recv have different constant size: "
+//                      << from_i << " and " << to_i << endl;
+//            return false;
+//          }
+        }
+      }
+    }
+    else
+    {
+      while(isSgUnaryOp(from_exp))
+        from_exp = isSgUnaryOp(from_exp)->get_operand();
+
+      while(isSgUnaryOp(to_exp))
+        to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+      if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp) &&
+         hasConstValue(isSgNode(from_exp)) && hasConstValue(isSgNode(to_exp)))
+      {
+        int from_i = getConstPropValue(from_exp);
+        int to_i = getConstPropValue(to_exp);
+        return (from_i == to_i) ? true : false;
       }
     }
   }
   return true;
 }
+
 
 //=============================================================================================
 bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
@@ -539,24 +624,25 @@ bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
     {
       int from_i = isSgIntVal(from_exp)->get_value();
       int to_i = isSgIntVal(to_exp)->get_value();
-      if(from_i == to_i)
-      {
-        std::cerr << "Send and Recv have same constant tag: " << from_i << endl;
-        //TODO ... set Type checked Flag at communication edge.
-        return true;
-      }
-      if(from_i != to_i)
-      {
-        std::cerr << "Send and Recv have different constant tags: "
-                  << from_i << " and " << to_i << endl;
-        return false;
-      }
+      return (from_i == to_i) ? true : false;
+//      if(from_i == to_i)
+//      {
+//        std::cerr << "Send and Recv have same constant tag: " << from_i << endl;
+//        //TODO ... set Type checked Flag at communication edge.
+//        return true;
+//      }
+//      if(from_i != to_i)
+//      {
+//        std::cerr << "Send and Recv have different constant tags: "
+//                  << from_i << " and " << to_i << endl;
+//        return false;
+//      }
     }
     if(isSgMinusOp(from_exp))
       if(isSgIntVal(isSgMinusOp(from_exp)->get_operand()))
         if(isSgIntVal(isSgMinusOp(from_exp)->get_operand())->get_value() == 1)
         {
-          std::cerr << "Send with MPI_ANY_TAG: " << endl;
+//          std::cerr << "Send with MPI_ANY_TAG: " << endl;
           //TODO ... set Type checked Flag at communication edge.
           return true;
         }
@@ -564,10 +650,60 @@ bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
       if(isSgIntVal(isSgMinusOp(to_exp)->get_operand()))
         if(isSgIntVal(isSgMinusOp(to_exp)->get_operand())->get_value() == 1)
         {
-          std::cerr << "Recv with MPI_ANY_TAG: " << endl;
+//          std::cerr << "Recv with MPI_ANY_TAG: " << endl;
           //TODO ... set Type checked Flag at communication edge.
           return true;
         }
+    //from_exp is int to_exp is int by constant propagation (check to_i == -1)
+    if(isSgIntVal(from_exp))
+    {
+//      std::cerr << "check for constant propagation value" << endl;
+      while(isSgUnaryOp(to_exp))
+        to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+      if(isSgVarRefExp(to_exp))
+        if(hasConstValue(isSgNode(to_exp)))
+        {
+          //compare const values
+          int from_i = isSgIntVal(from_exp)->get_value();
+          int to_i = getConstPropValue(to_exp);
+          if(to_i == -1)
+            return true;
+          return (from_i == to_i) ? true : false;
+        }
+    }
+    //to_exp is int from_exp is int by constant propagation (check from_i == -1)
+    if(isSgIntVal(to_exp))
+    {
+//      std::cerr << "check for constant propagation value" << endl;
+      while(isSgUnaryOp(from_exp))
+        from_exp = isSgUnaryOp(from_exp)->get_operand();
+
+      if(isSgVarRefExp(from_exp))
+        if(hasConstValue(isSgNode(from_exp)))
+        {
+          //compare const values
+          int from_i = getConstPropValue(from_exp);
+          int to_i = isSgIntVal(to_exp)->get_value();
+          if(from_i == -1)
+            return true;
+          return (from_i == to_i) ? true : false;
+        }
+    }
+    //both are int by constant propagation
+    while(isSgUnaryOp(from_exp))
+      from_exp = isSgUnaryOp(from_exp)->get_operand();
+
+    while(isSgUnaryOp(to_exp))
+      to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+    if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp) &&
+       hasConstValue(isSgNode(from_exp)) && hasConstValue(isSgNode(to_exp)))
+    {
+      int from_i = getConstPropValue(from_exp);
+      int to_i = getConstPropValue(to_exp);
+      return (from_i == to_i) ? true : false;
+    }
   }
   return true;
 }
@@ -604,20 +740,89 @@ bool MPICFG::checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_
       std::string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
       if(from_s == to_s && from_s.substr(0,ompi.size()) == ompi)
       {
-        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
+//        std::cerr << "Send and Recv have same constant type: " << from_s << endl;
         //TODO ... set Type checked Flag at MPI Send and MPI Recv nodes.
         return true;
       }
       if(from_s.substr(0,ompi.size()) == ompi && to_s.substr(0,ompi.size()) == ompi)
       {
-        std::cerr << "Send and Recv have different constant types: "
-                  << from_s << " and " << to_s << endl;
+//        std::cerr << "Send and Recv have different constant types: "
+//                  << from_s << " and " << to_s << endl;
         return false;
       }
     }
   }
   return true;
 }
+
+//=============================================================================================
+//
+//                  Constant Propagation Lattice helper functions
+//
+//=============================================================================================
+
+//=============================================================================================
+bool MPICFG::hasConstValue(SgNode* node)
+{
+  ROSE_ASSERT(node != NULL);
+
+  if(isSgVarRefExp(node))
+  {
+    string var = node->unparseToString();
+    VarsExprsProductLattice* lattice =
+      dynamic_cast <VarsExprsProductLattice *>
+        (NodeState::getLatticeAbove(const_prop_, node,0)[0]);
+
+//    std::cerr << lattice->str() << endl;
+
+    ConstantPropagationLattice* varlattice =
+        dynamic_cast <ConstantPropagationLattice*>(lattice->getVarLattice(varID(node)));
+
+    if(varlattice != NULL)
+    {
+//      std::cerr << "found the node " << var << endl;
+      //TODO: create an interesting constant value...
+      if(varlattice->getLevel() == (short)2)
+        return true;
+    }
+//    std::cerr << "did not find node" << var << endl;
+  }
+
+  return false;
+}
+
+//=============================================================================================
+int MPICFG::getConstPropValue(SgNode* node)
+{
+  ROSE_ASSERT(node != NULL);
+
+  if(isSgVarRefExp(node))
+  {
+    string var = node->unparseToString();
+    VarsExprsProductLattice* lattice =
+      dynamic_cast <VarsExprsProductLattice *>
+        (NodeState::getLatticeAbove(const_prop_, node,0)[0]);
+
+//    std::cerr << lattice->str() << endl;
+
+    ConstantPropagationLattice* varlattice =
+        dynamic_cast <ConstantPropagationLattice*>(lattice->getVarLattice(varID(node)));
+
+    if(varlattice != NULL)
+    {
+      //TODO: remove this please
+      if(varlattice->getLevel() == (short)2)
+      {
+//        std::cerr << "found the node " << var
+//                  << " value: " << varlattice->getValue() << endl;
+        return varlattice->getValue();
+      }
+    }
+//    std::cerr << "did not find node" << var << endl;
+  }
+  return 0;
+}
+
 
 //=============================================================================================
 const CFGNode MPICFG::getCFGNode(SgGraphNode* node)

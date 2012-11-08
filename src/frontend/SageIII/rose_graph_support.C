@@ -469,7 +469,7 @@ bool SgIncidenceDirectedGraph::removeDirectedEdge( SgDirectedGraphEdge* edge  ) 
         
         edge->set_parent(NULL);
         
-        delete edge; 
+//        delete edge; 
         return true;
         
     }   

@@ -381,9 +381,16 @@ namespace VirtualCFG {
                tgtIndex == SGCONSTRUCTORINITIALIZER_INTERPROCEDURAL_INDEX+1 &&
                !isSgConstructorInitializer(srcNode)) {
         return eckInterprocedural;
-    } else if (isSgFunctionRefExp(srcNode) && isSgFunctionRefExp(tgtNode) &&
-               (isSgFunctionRefExp(srcNode)->get_symbol()->get_name() == "MPI_Send") &&
-               (isSgFunctionRefExp(tgtNode)->get_symbol()->get_name() == "MPI_Recv")) {
+    } else if (isSgFunctionCallExp(srcNode) &&
+               isSgFunctionCallExp(tgtNode) &&
+               isSgFunctionRefExp(isSgFunctionCallExp(srcNode)->get_function()) &&
+               isSgFunctionRefExp(isSgFunctionCallExp(tgtNode)->get_function()) &&
+               ((isSgFunctionRefExp(isSgFunctionCallExp(srcNode)->get_function())->get_symbol()->get_name() == "MPI_Send") ||
+                (isSgFunctionRefExp(isSgFunctionCallExp(srcNode)->get_function())->get_symbol()->get_name() == "MPI_Isend"))
+               &&
+               ((isSgFunctionRefExp(isSgFunctionCallExp(tgtNode)->get_function())->get_symbol()->get_name() == "MPI_Recv") ||
+                (isSgFunctionRefExp(isSgFunctionCallExp(tgtNode)->get_function())->get_symbol()->get_name() == "MPI_Irecv"))
+              ){
         return eckMPI;
     } else {
       // No key

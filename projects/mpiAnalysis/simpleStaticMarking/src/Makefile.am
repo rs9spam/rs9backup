@@ -1,11 +1,10 @@
 include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 
 SAF_SRC_ROOT   = $(top_srcdir)/src/midend/programAnalysis/genericDataflow/
-#DFA_ROOT = $(top_srcdir)/tests/roseTests/programAnalysisTests/
 
 # To keep compile commands tidy, please ONLY put required include flags here.
 XXX_INCLUDES = $(ROSE_INCLUDES) \
-           -I$(SAF_SRC_ROOT)/include \
+          -I$(SAF_SRC_ROOT)/include \
            -I$(SAF_SRC_ROOT)/src/analysis \
            -I$(SAF_SRC_ROOT)/src/arrIndexLabeler \
            -I$(SAF_SRC_ROOT)/src/cfgUtils \
@@ -35,15 +34,10 @@ INCLUDES = $(ROSE_INCLUDES) \
            -I$(SAF_SRC_ROOT)/state \
            -I$(SAF_SRC_ROOT)/variables
 
-#\-I$(DFA_ROOT)/generalDataFlowAnalysisTests
 
 
-
-bin_PROGRAMS = mpiAnalysis
-#mpiAnalysis_SOURCES = mpiAnalysis.cpp virtualMPICFG.h virtualMPICFG.cpp staticMPICFG.h staticMPICFG.cpp mpiCFG.h mpiCFG.cpp
-mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h constantPropagation.cpp constantPropagation.h rankAnalysis.cpp rankAnalysis.h pSet.cpp pSet.h
-#liveDeadA_SOURCES = liveDeadA.C
-
+bin_PROGRAMS = simpleMpiA
+simpleMpiA_SOURCES = simpleMpiA.cpp nonDetAnalysis.cpp nonDetAnalysis.h
 
 #INCLUDES = $(ROSE_INCLUDES)
 LDADD    = $(LIBS_WITH_RPATH) $(ROSE_LIBS)
@@ -62,11 +56,11 @@ PASSING_C_TEST_Objects = $(C_TESTCODES_REQUIRED_TO_PASS:.c=.o)
 
 PASSING_CXX_TEST_Objects = $(CXX_TESTCODES_REQUIRED_TO_PASS:.cpp=.o)
 
-$(PASSING_C_TEST_Objects): %.o: $(srcdir)/%.c graphColoringMain
-	./graphColoringMain $(ROSE_FLAGS) $(TESTCODE_INCLUDES) -c $<
+#$(PASSING_C_TEST_Objects): %.o: $(srcdir)/%.c graphColoringMain
+#	./graphColoringMain $(ROSE_FLAGS) $(TESTCODE_INCLUDES) -c $<
 
-$(PASSING_CXX_TEST_Objects): %.o: $(srcdir)/%.cpp graphColoringMain
-	./graphColoringMain ${ROSE_FLAGS} ${TESTCODE_INCLUDES} -c $<
+#$(PASSING_CXX_TEST_Objects): %.o: $(srcdir)/%.cpp graphColoringMain
+#	./graphColoringMain ${ROSE_FLAGS} ${TESTCODE_INCLUDES} -c $<
 
 ALL_TESTCODES = \
 $(C_TESTCODES_REQUIRED_TO_PASS) \
