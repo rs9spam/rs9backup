@@ -62,12 +62,12 @@ int main(int argc, char *argv[])
   ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
   cpInter.runAnalysis();
 
-  RankAnalysis rankA(project);
-//  rankA.setProject(project);
-//  ROSE_ASSERT (rankA.setSizeAndRank(project));
-//  rankA.setRankAnalysis(&rankA); // don't do that!
-  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
-  rankInter.runAnalysis();
+//  RankAnalysis rankA(project);
+////  rankA.setProject(project);
+////  ROSE_ASSERT (rankA.setSizeAndRank(project));
+////  rankA.setRankAnalysis(&rankA); // don't do that!
+//  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
+//  rankInter.runAnalysis();
 
   ///////////////////////////////////////////////////////////////////////////////////////////
 

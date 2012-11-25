@@ -276,7 +276,9 @@ public:
       ldva.assignedExprs.insert(sgn->get_operand());
     }
     // The argument is used
-    ldva.used(sgn->get_operand());
+    // check for SgThrow
+    if(sgn->get_operand() != NULL)
+      ldva.used(sgn->get_operand());
   }
   // Conditionals (condE ? trueE : falseE)
   void visit(SgConditionalExp *sgn) {
@@ -404,14 +406,43 @@ void LiveDeadVarsTransfer::visit(SgInitializedName *sgn) {
 }
 
 void LiveDeadVarsTransfer::visit(SgReturnStmt *sgn) {
-  used(sgn->get_expression());
+  if(sgn->get_expression())
+    used(sgn->get_expression());
+  else
+  {
+    std::cerr << "No expression for Return stmt at: ";
+    std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
+    std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
+  }
 }
 void LiveDeadVarsTransfer::visit(SgExprStatement *sgn) {
-  used(sgn->get_expression());
+  if(sgn->get_expression())
+    used(sgn->get_expression());
+  else
+  {
+    std::cerr << "No expression at: ";
+    std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
+    std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
+  }
 }
 void LiveDeadVarsTransfer::visit(SgCaseOptionStmt *sgn) {
-  used(sgn->get_key());
-  used(sgn->get_key_range_end());
+  if(sgn->get_key())
+    used(sgn->get_key());
+  else
+  {
+    std::cerr << "No key for case option stmt at: ";
+    std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
+    std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
+  }
+
+  if(sgn->get_key_range_end())
+    used(sgn->get_key_range_end());
+  else
+  {
+    std::cerr << "No key range for case option stmt at: ";
+    std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
+    std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
+  }
 }
 void LiveDeadVarsTransfer::visit(SgIfStmt *sgn) {
   //Dbg::dbg << "SgIfStmt"<<endl;
@@ -419,6 +450,7 @@ void LiveDeadVarsTransfer::visit(SgIfStmt *sgn) {
   //Dbg::dbg << "    conditional stmt="<<Dbg::escape(isSgExprStatement(sgn->get_conditional())->unparseToString()) << " | " << isSgExprStatement(sgn->get_conditional())->class_name()<<endl;
   //Dbg::dbg << "    conditional expr="<<Dbg::escape(isSgExprStatement(sgn->get_conditional())->get_expression()->unparseToString()) << " | " << isSgExprStatement(sgn->get_conditional())->get_expression()->class_name()<<endl;
   //Dbg::dbg << "    conditional var="<<SgExpr2Var(isSgExprStatement(sgn->get_conditional())->get_expression())<<endl;
+  ROSE_ASSERT(isSgExprStatement(sgn->get_conditional())->get_expression());
   used(isSgExprStatement(sgn->get_conditional())->get_expression());
 }
 void LiveDeadVarsTransfer::visit(SgForStatement *sgn) {

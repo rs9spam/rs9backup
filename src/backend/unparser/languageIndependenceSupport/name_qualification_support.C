@@ -120,6 +120,23 @@ Unparser_Nameq::lookup_generated_qualified_name ( SgNode* referencedNode )
                break;
              }
 
+          case V_SgArrowExp:
+             {
+               if(isSgExpression(referencedNode))
+               {
+
+                 SgExpression* node = isSgExpression(referencedNode);
+                 nameQualifier = node->get_qualified_name_prefix_for_referenced_type();
+                 std::cerr << "class NAME: " << referencedNode->class_name().c_str() << std::endl;
+                 std::cerr << "node_NAME: " << isSgNode(referencedNode)->unparseToString() << std::endl;
+                 std::cerr << "file NAME: " << isSgLocatedNode(referencedNode)->getFilenameString();
+                 std::cerr << " line NUMBER: " << isSgLocatedNode(referencedNode)->get_file_info()->get_line() << std::endl;
+               }
+               //stoero: just to avoid the ASSERT...
+               //        but then it's running into a Segmentation fault later.
+               //break;
+             }
+
 #if 0
           case V_:
              {
@@ -131,7 +148,9 @@ Unparser_Nameq::lookup_generated_qualified_name ( SgNode* referencedNode )
           default:
              {
                printf ("In unparseClassType: Sorry not implemented case of name qualification for info.get_reference_node_for_qualification() = %s \n",referencedNode->class_name().c_str());
-               ROSE_ASSERT(false);
+               break;
+               //ROSE_ASSERT(false);
+
              }
         }
 

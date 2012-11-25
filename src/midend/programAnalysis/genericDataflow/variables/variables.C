@@ -190,8 +190,15 @@ bool varID::isValidVarExp(const SgNode* n)
 // returns true if the given expression is one that can be represented as a variable in our representation
 bool varID::isValidVarExp(const SgExpression* exp)
 {
-        ROSE_ASSERT(exp->get_parent());
-        
+//stoero begin:
+//        ROSE_ASSERT(exp->get_parent());
+        if(!exp)
+        {
+          std::cerr << "ERROR variables.C line 197 ... fix" << endl;
+          return false;
+        }
+//stoero end:
+
         exp = cfgUtils::unwrapCasts(exp);
                 
         // if this is an array reference expression, the variable in question is the array itself

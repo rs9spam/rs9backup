@@ -573,7 +573,10 @@ void MergeAllReturnStates::visit(const Function& func, const DataflowNode& n, No
                 // assuming that any information is available
                 vector<Lattice*> exprLats;
                 for(vector<Lattice*>::const_iterator l=state->getLatticeAbove(analysis).begin(); l!=state->getLatticeAbove(analysis).end(); l++)
-                        exprLats.push_back((*l)->project(isSgReturnStmt(sgn)->get_expression()));
+                {
+                  if(isSgReturnStmt(sgn)->get_expression())
+                    exprLats.push_back((*l)->project(isSgReturnStmt(sgn)->get_expression()));
+                }
                 if(analysisDebugLevel>=1) Dbg::dbg << "    Merging dataflow state of return value\n";
                 modified = mergeLats(mergedLatsRetVal, exprLats) || modified; 
         }
@@ -925,15 +928,23 @@ void ContextInsensitiveInterProceduralDataflow::visit(const CGFunction* funcCG)
                 // because of their calls to this function
                 if(modified)
                 {
-                        //Dbg::dbg << "Inserting Callers\n";
-                        for(CGFunction::iterator it = funcCG->predecessors(); it!=funcCG->end(); it++)
-                        {
-                                const CGFunction* caller = it.getTarget(functions);
-                                
-                                //Dbg::dbg << "Caller of "<<funcCG->get_name().getString()<<": "<<caller->get_name().getString()<<endl;
-                                addToRemaining(caller);
-                                remainingDueToCalls[caller].insert(func);
-                        }
+                  //Dbg::dbg << "Inserting Callers\n";
+                  for(CGFunction::iterator it = funcCG->predecessors(); it!=funcCG->end(); it++)
+                  {
+                    const CGFunction* caller = it.getTarget(functions);
+
+                    if(caller)
+                    {
+                      //Dbg::dbg << "Caller of "<<funcCG->get_name().getString()<<": "<<caller->get_name().getString()<<endl;
+                      addToRemaining(caller);
+                      remainingDueToCalls[caller].insert(func);
+                    }
+                    else
+                    {
+                      std::cerr << "Caller of "<<funcCG->get_name().getString() <<endl;
+                    }
+
+                  }
                 }
         }
 }

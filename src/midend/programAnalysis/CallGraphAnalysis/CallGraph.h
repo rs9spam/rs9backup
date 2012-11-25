@@ -192,7 +192,7 @@ CallGraphBuilder::buildCallGraph(Predicate pred)
         }
 
         //AS(032806) Filter out functions based on criteria in predicate
-        if (pred(functionDeclaration) == true)
+        if (pred(functionDeclaration) != false)
         {
             FunctionData functionData(functionDeclaration, project, &classHierarchy);
             ROSE_ASSERT(functionData.functionDeclaration != NULL);
@@ -261,22 +261,37 @@ CallGraphBuilder::buildCallGraph(Predicate pred)
                                 continue;
                         }
 
+//stoero
+
                         iter = graphNodes.find(calleeDeclaration);
-                        ROSE_ASSERT(iter != graphNodes.end());
-                        SgGraphNode *endNode = iter->second;
-
-                        if (returnGraph->checkIfDirectedGraphEdgeExists(startingNode, endNode) == false)
+                        if(iter != graphNodes.end())
                         {
-                                ROSE_ASSERT(startingNode != NULL && endNode != NULL);
-                                returnGraph->addDirectedEdge(startingNode, endNode);
-                        }
-                        else if (SgProject::get_verbose() >= DIAGNOSTICS_VERBOSE_LEVEL)
-                        {
-                                std::cout << "Did not add edge since it already exist" << std::endl;
-                                std::cout << "\tEndNode " << calleeDeclaration->get_name().str() << "\n";
-                        }
+                          ROSE_ASSERT(iter != graphNodes.end());
+                          SgGraphNode *endNode = iter->second;
 
-            totEdges++;
+                          if (returnGraph->checkIfDirectedGraphEdgeExists(startingNode, endNode) == false)
+                          {
+                                  ROSE_ASSERT(startingNode != NULL && endNode != NULL);
+                                  returnGraph->addDirectedEdge(startingNode, endNode);
+                          }
+                          else if (SgProject::get_verbose() >= DIAGNOSTICS_VERBOSE_LEVEL)
+                          {
+                                  std::cout << "Did not add edge since it already exist" << std::endl;
+                                  std::cout << "\tEndNode " << calleeDeclaration->get_name().str() << "\n";
+                          }
+
+                          totEdges++;
+                        }
+                        else
+                        {
+                          std::cerr << "Error:: Find out what happened!!" << std::endl;
+                          if(isSgNode(calleeDeclaration))
+                          {
+                            std::cerr << "Declaration: " << isSgNode(calleeDeclaration)->unparseToString() << std::endl;
+                            std::cerr << "file NAME: " << isSgLocatedNode(calleeDeclaration)->getFilenameString();
+                            std::cerr << " line NUMBER: " << isSgLocatedNode(calleeDeclaration)->get_file_info()->get_line() << std::endl;
+                          }
+                        }
         }
     }
     

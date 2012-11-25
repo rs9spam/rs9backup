@@ -39,29 +39,35 @@ int main(int argc, char *argv[])
   std::cerr << "**************   Build the AST used by ROSE   ***************\n";
   std::cerr << "*************************************************************\n";
   SgProject* project = frontend(argc,argv);
+//  std::cerr << "1************************************************************\n";
   ROSE_ASSERT (project != NULL);
+//  std::cerr << "2************************************************************\n";
   cfgUtils::initCFGUtils(project);
+//  std::cerr << "3************************************************************\n";
+  initAnalysis(project);  // can't be used with Live/Dead Variable Analysis...
+//  std::cerr << "4************************************************************\n";
+  SgIncidenceDirectedGraph* graph = getCallGraph();
+//  std::cerr << "5************************************************************\n";
 
-//  initAnalysis(project);  // can't be used with Live/Dead Variable Analysis...
+//  //Call graph get/s built in initAnalysis()....
+//  std::cerr << "*************************************************************\n";
+//  std::cerr << "*******************   Build Call Graph   ********************\n";
+//  std::cerr << "*************************************************************\n";
+//  CallGraphBuilder cgb(project);
+//  cgb.buildCallGraph();
+//  SgIncidenceDirectedGraph* graph = cgb.getGraph();
+//  std::cerr << "*************************************************************\n";
 
-  //Call graph get/s built in initAnalysis()....
-  std::cerr << "*************************************************************\n";
-  std::cerr << "*******************   Build Call Graph   ********************\n";
-  std::cerr << "*************************************************************\n";
-  CallGraphBuilder cgb(project);
-  cgb.buildCallGraph();
-  SgIncidenceDirectedGraph* graph = cgb.getGraph();
-
-  std::cerr << "*************************************************************\n";
-  std::cerr << "**************   Live/Dead Variable Analysis   **************\n";
-  std::cerr << "*************************************************************\n";
-  initAnalysis(project);
-  Dbg::init("Live dead variable analysis Test", ".", "index.html");
-  liveDeadAnalysisDebugLevel = 1;
-  analysisDebugLevel = 1;
-  LiveDeadVarsAnalysis ldva(project);
-  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
-  ciipd_ldva.runAnalysis();
+//  std::cerr << "*************************************************************\n";
+//  std::cerr << "**************   Live/Dead Variable Analysis   **************\n";
+//  std::cerr << "*************************************************************\n";
+//  initAnalysis(project);
+//  Dbg::init("Live dead variable analysis Test", ".", "index.html");
+//  liveDeadAnalysisDebugLevel = 1;
+//  analysisDebugLevel = 1;
+//  LiveDeadVarsAnalysis ldva(project);
+//  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+//  ciipd_ldva.runAnalysis();
 
 //  std::cerr << "*************************************************************\n";
 //  std::cerr << "*****************   Divisibility Analysis   *****************\n";
@@ -79,22 +85,50 @@ int main(int argc, char *argv[])
   analysisDebugLevel = 0;
   MPINonDetAnalysisDebugLevel = 0;
 //  MPINonDetAnalysis* rda = runMPINonDetAnalysis(getCallGraph());
-  MPINonDetAnalysis* rda = runMPINonDetAnalysis(graph, &ldva, "");
+  MPINonDetAnalysis* rda = runMPINonDetAnalysis(graph, "");
+//  MPINonDetAnalysis* rda = runMPINonDetAnalysis(graph, &ldva, "");
   vector<SgNode*> non_det_nodes = rda->getNonDetNodes();
 //  MPINonDetAnalysis* rda = runMPINonDetAnalysis(graph);
   printMPINonDetAnalysisStates("");
   Dbg::exitFunc("nonDetAnalysis");
 
-
-
-
-
-
-
-
-
-
-
+//  //prepare nonDetAnalysis
+//  MPINonDetAnalysis* nonDetAnalysis = new MPINonDetAnalysis();
+//  ROSE_ASSERT( nonDetAnalysis != NULL);
+//
+//  Rose_STL_Container<SgNode*> nodeList= NodeQuery::querySubTree(project, V_SgFunctionDeclaration);
+//
+//  Rose_STL_Container<SgNode*>::const_iterator i;
+//  for (i = nodeList.begin() ; i != nodeList.end(); ++i)
+//  {
+//    SgFunctionDeclaration* sgfunction = isSgFunctionDeclaration(*i);
+//
+//    Function func = CGFunction(sgfunction, graph );
+//    if(func.get_definition())
+//    {
+//      FunctionState* fState = FunctionState::getDefinedFuncState(func);
+//      IntraProceduralDataflow *intraDataflow = dynamic_cast<IntraProceduralDataflow *>(nonDetAnalysis);
+//      if (intraDataflow->visited.find(func) == intraDataflow->visited.end())
+//      {
+//        vector<Lattice*>  initLats;
+//        vector<NodeFact*> initFacts;
+//        std::cerr << "6*************************************************************\n";
+//        intraDataflow->genInitState(func, cfgUtils::getFuncStartCFG(func.get_definition()),
+//                                    fState->state, initLats, initFacts);
+//        //                        intraAnalysis->genInitState(func, cfgUtils::getFuncEndCFG(func.get_definition()),
+//        //                            fState->state, initLats, initFacts);
+//        std::cerr << "7*************************************************************\n";
+//        fState->state.setLattices(nonDetAnalysis, initLats);
+//        std::cerr << "8*************************************************************\n";
+//        fState->state.setFacts(nonDetAnalysis, initFacts);
+//      }
+//
+//      std::cerr << "9*************************************************************\n";
+//      // Run the intra-procedural dataflow analysis on the current function
+//      dynamic_cast<IntraProceduralDataflow*>(nonDetAnalysis)->runAnalysis(func, &(fState->state));
+//    }
+//  }
+//
 
 
 

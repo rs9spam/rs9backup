@@ -1060,7 +1060,7 @@ CallGraphBuilder::buildCallGraph (){
 
 
   GetOneFuncDeclarationPerFunction::result_type 
-GetOneFuncDeclarationPerFunction::operator()(SgNode* node )
+GetOneFuncDeclarationPerFunction::operator()(SgNode* node)
 {
   result_type returnType;
   SgFunctionDeclaration* funcDecl = isSgFunctionDeclaration(node);
