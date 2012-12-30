@@ -59,7 +59,10 @@ int main( int argc, char * argv[] )
     //Construct a call Graph
     CallGraphBuilder CGBuilder(project);
 //    CGBuilder.buildCallGraph(keepFunction());
-    CGBuilder.buildCallGraph(builtinFilter());
+//    CGBuilder.buildCallGraph(builtinFilter());
+    std::cerr << "############## build call graph ##########\n";
+    CGBuilder.buildCallGraph(customFunctionFilter());
+    std::cerr << "##############    finished:     ##########\n";
 
     // Output to a dot file
     AstDOTGeneration dotgen;

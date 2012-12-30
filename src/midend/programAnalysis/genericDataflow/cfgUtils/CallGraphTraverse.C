@@ -68,11 +68,11 @@ Function::Function(SgFunctionDefinition* sample)
 
 Function::Function(SgFunctionCallExp* funcCall)
 {
-  //ROSE_ASSERT(isSgFunctionRefExp(funcCall->get_function()));
-  if(isSgFunctionRefExp(funcCall->get_function()))
-    init(isSgFunctionRefExp(funcCall->get_function())->get_symbol()->get_declaration());
-  else
-    std::cerr << "ERROR: FunctionCall without function...." << endl;
+  ROSE_ASSERT(isSgFunctionRefExp(funcCall->get_function()));
+  //if(isSgFunctionRefExp(funcCall->get_function()))
+  init(isSgFunctionRefExp(funcCall->get_function())->get_symbol()->get_declaration());
+  //else
+    //std::cerr << "ERROR: FunctionCall without function...." << endl;
 }
 
 void Function::init(SgFunctionDeclaration* sample)

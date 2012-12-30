@@ -28,19 +28,19 @@ main (int argc, char **argv)
 
   //  MPI_Barrier (MPI_COMM_WORLD);
 
-  if (nprocs < 3)
+  if (nprocs < 16)
     {
       printf ("not enough tasks\n");
     }
   else if (rank == 0)
     {
-            
+      int i; 
+      for( i = 1; i <=15; i++)
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
       
     }
   else if (rank == 1)
@@ -52,7 +52,7 @@ main (int argc, char **argv)
       MPI_Send (buf0, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
       MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+/*       MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD); */
     }
   else if (rank == 2)
     {
@@ -62,7 +62,7 @@ main (int argc, char **argv)
 
       MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
       MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+/*       MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD); */
     }
 
   //  MPI_Barrier (MPI_COMM_WORLD);

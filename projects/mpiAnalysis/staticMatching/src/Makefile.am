@@ -49,7 +49,35 @@ mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h constantPropagation.cp
 LDADD    = $(LIBS_WITH_RPATH) $(ROSE_LIBS)
 
 C_TESTCODES_REQUIRED_TO_PASS = \
-	../tests/test1.c
+	../tests/btest.c \
+	../tests/deadlock1.c \
+	../tests/deadlock2.c \
+	../tests/deadlock3.c \
+	../tests/deadlock4.c \
+	../tests/deadlock5.c \
+	../tests/deadlock6.c \
+	../tests/diffusion.c \
+	../tests/diffusion2_nd.c \
+	../tests/diffusion2_scaledown.c \
+	../tests/diffusion2.c \
+	../tests/dtg.c \
+	../tests/GE.c \
+	../tests/mat_mul.c \
+	../tests/monte.c \
+	../tests/probe-unexp.c \
+	../tests/steve-mat-mul.c \
+	../tests/t1.c \
+	../tests/test01.c \
+	../tests/test02.c \
+	../tests/test03.c \
+	../tests/test04.c \
+	../tests/test1.c \
+	../tests/test2.c \
+	../tests/test3.c \
+	../tests/test4.c \
+	../tests/test5.c \
+	../tests/test6.c \
+	../tests/test7.c
 
 CXX_TESTCODES_REQUIRED_TO_PASS = 
 

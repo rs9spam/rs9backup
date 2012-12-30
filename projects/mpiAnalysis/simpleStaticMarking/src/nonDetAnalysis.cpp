@@ -380,7 +380,7 @@ bool MPINonDetAnalysis::transfer(const Function& func,
   SgNode *sgn = n.getNode();
 
 //#if 0
-  if(isSgFunctionCallExp(sgn))
+  if(isSgFunctionCallExp(sgn) && isSgFunctionRefExp(isSgFunctionCallExp(sgn)->get_function()))
   {
     //Dbg::dbg << "    isSgFunctionCallExp"<<endl;
     SgFunctionCallExp* fnCall = isSgFunctionCallExp(sgn);
@@ -844,137 +844,146 @@ bool MPINonDetAnalysis::transfer(const Function& func,
     }
   }
 
-  // Binary operations: lhs=rhs, lhs+=rhs, lhs+rhs, ...
-  else if(isSgBinaryOp(sgn)) {
-//#endif
-//  if(isSgBinaryOp(sgn)) {
-    // Memory objects denoted by the expression's left- and right-hand
-    // sides as well as the SgAssignOp itself
-    varID lhs = SgExpr2Var(isSgBinaryOp(sgn)->get_lhs_operand());
-    varID rhs = SgExpr2Var(isSgBinaryOp(sgn)->get_rhs_operand());
-    varID res = SgExpr2Var(isSgBinaryOp(sgn));
-
-    // The lattices associated the three memory objects
-    MPINonDetLattice* resLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
-    MPINonDetLattice* lhsLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(lhs));
-    MPINonDetLattice* rhsLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(rhs));
-    ROSE_ASSERT(rhsLat);
-
-    // Assignment: lhs = rhs, lhs+=rhs, lhs*=rhs,  lhs/=rhs, ...
-    //    dependence flows from rhs to lhs and res
-    if(isSgAssignOp(sgn))
-    {
-      // If the lhs and/or the SgAssignOp are live, copy lattice from the rhs
-      if(lhsLat){ lhsLat->copy(rhsLat); modified = true; }
-      if(resLat){ resLat->copy(rhsLat); modified = true; }
-    }
-    else if(isSgCompoundAssignOp(sgn))
-    {
-      if(lhsLat) {
-        lhsLat->meetUpdate(rhsLat);
-        modified = true;
-      }
-      if(resLat) {
-        // 'lhs' must be alive here, and thus provide a lattice value, beacuse 'res' depends on it
-        ROSE_ASSERT(lhsLat);
-        resLat->copy(lhsLat);
-        modified = true;
-      }
-    }
-    // Non-assignments that do not refer to variables: lhs+rhs
-    // dependence flows from lhs and rhs to res
-    else {
-            if(resLat) {
-                    resLat->copy(rhsLat);
-                    resLat->meetUpdate(lhsLat);
-                    modified = true;
-            }
-    }
-    // NOTE: we need to deal with expressions such as a.b, a->b and a[i] specially since they refer to memory locations,
-    //       especially sub-expressions (e.g. a.b for a.b.c.d or a[i] for a[i][j][k]) but we don't yet have good abstraction for this.
-  // Unary operations
-  } else if(isSgUnaryOp(sgn)) {
-    if(!isSgAddressOfOp(sgn)) {
-      // Memory objects denoted by the expression's oprand as well as the expression itself
-      varID op = SgExpr2Var(isSgUnaryOp(sgn)->get_operand());
-      varID res = SgExpr2Var(isSgUnaryOp(sgn));
-
-      // The lattices associated the three memory objects
-      MPINonDetLattice* opLat =
-              dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(op));
-      MPINonDetLattice* resLat =
-              dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
-
-      ROSE_ASSERT(opLat);
-
-      // Copy lattice from the operand
-      resLat->copy(opLat);
-      modified = true;
-    }
-  // Conditional Operators: (x? y: z)
-  } else if(isSgConditionalExp(sgn)) {
-    // Memory objects denoted by the expression's condition, true and false sub-expressions
-    varID condE  = SgExpr2Var(isSgConditionalExp(sgn)->get_conditional_exp());
-    varID trueE  = SgExpr2Var(isSgConditionalExp(sgn)->get_true_exp());
-    varID falseE = SgExpr2Var(isSgConditionalExp(sgn)->get_false_exp());
-    varID res    = SgExpr2Var(isSgConditionalExp(sgn));
-
-    // The lattices associated the three memory objects
-    MPINonDetLattice* resLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
-    MPINonDetLattice* condLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(condE));
-    MPINonDetLattice* trueLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(trueE));
-    MPINonDetLattice* falseLat =
-            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(falseE));
-    ROSE_ASSERT(condLat); ROSE_ASSERT(trueLat); ROSE_ASSERT(falseLat);
-
-    // Dependence flows from the sub-expressions of the SgConditionalExp to res
-    if(resLat) {
-      resLat->copy(condLat);
-      resLat->meetUpdate(trueLat);
-      resLat->meetUpdate(falseLat);
-      modified = true;
-    }
-  // Variable Declaration
-  } else if(isSgInitializedName(sgn)) {
-    varID var(isSgInitializedName(sgn));
-    MPINonDetLattice* varLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(var));
-
-    // If this variable is live
-    if(varLat) {
-      // If there was no initializer, initialize its lattice to Bottom
-      if(isSgInitializedName(sgn)->get_initializer()==NULL)
-        modified = varLat->setToBottom() || modified;
-      // Otherwise, copy the lattice of the initializer to the variable
-      else {
-        varID init = SgExpr2Var(isSgInitializedName(sgn)->get_initializer());
-        MPINonDetLattice* initLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(init));
-        ROSE_ASSERT(initLat);
-        varLat->copy(initLat);
-        modified = true;
-      }
-    }
-  // Initializer for a variable
-  } else if(isSgAssignInitializer(sgn)) {
-    // Memory objects of the initialized variable and the
-    // initialization expression
-    varID res = SgExpr2Var(isSgAssignInitializer(sgn));
-    varID asgn = SgExpr2Var(isSgAssignInitializer(sgn)->get_operand());
-
-    // The lattices associated both memory objects
-    MPINonDetLattice* resLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
-    MPINonDetLattice* asgnLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(asgn));
-    ROSE_ASSERT(resLat);
-
-    // Copy lattice from the assignment
-    resLat->copy(asgnLat);
-    modified = true;
-  }
+//  // Binary operations: lhs=rhs, lhs+=rhs, lhs+rhs, ...
+//  else if(isSgBinaryOp(sgn)) {
+////#endif
+////  if(isSgBinaryOp(sgn)) {
+//    // Memory objects denoted by the expression's left- and right-hand
+//    // sides as well as the SgAssignOp itself
+//    varID lhs = SgExpr2Var(isSgBinaryOp(sgn)->get_lhs_operand());
+//    varID rhs = SgExpr2Var(isSgBinaryOp(sgn)->get_rhs_operand());
+//    varID res = SgExpr2Var(isSgBinaryOp(sgn));
+//
+//    // The lattices associated the three memory objects
+//    MPINonDetLattice* resLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
+//    MPINonDetLattice* lhsLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(lhs));
+//    MPINonDetLattice* rhsLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(rhs));
+//    ROSE_ASSERT(rhsLat);
+//
+//    // Assignment: lhs = rhs, lhs+=rhs, lhs*=rhs,  lhs/=rhs, ...
+//    //    dependence flows from rhs to lhs and res
+//    if(isSgAssignOp(sgn))
+//    {
+//      // If the lhs and/or the SgAssignOp are live, copy lattice from the rhs
+//      if(lhsLat){ lhsLat->copy(rhsLat); modified = true; }
+//      if(resLat){ resLat->copy(rhsLat); modified = true; }
+//    }
+//    else if(isSgCompoundAssignOp(sgn))
+//    {
+//      if(lhsLat) {
+//        lhsLat->meetUpdate(rhsLat);
+//        modified = true;
+//      }
+//      if(resLat) {
+//        // 'lhs' must be alive here, and thus provide a lattice value, beacuse 'res' depends on it
+//        ROSE_ASSERT(lhsLat);
+//        resLat->copy(lhsLat);
+//        modified = true;
+//      }
+//    }
+//    // Non-assignments that do not refer to variables: lhs+rhs
+//    // dependence flows from lhs and rhs to res
+//    else {
+//            if(resLat) {
+//                    resLat->copy(rhsLat);
+//                    resLat->meetUpdate(lhsLat);
+//                    modified = true;
+//            }
+//    }
+//    // NOTE: we need to deal with expressions such as a.b, a->b and a[i] specially since they refer to memory locations,
+//    //       especially sub-expressions (e.g. a.b for a.b.c.d or a[i] for a[i][j][k]) but we don't yet have good abstraction for this.
+//  // Unary operations
+//  } else if(isSgUnaryOp(sgn)) {
+//    if(!isSgAddressOfOp(sgn)) {
+//      // Memory objects denoted by the expression's oprand as well as the expression itself
+//      varID op = SgExpr2Var(isSgUnaryOp(sgn)->get_operand());
+//      varID res = SgExpr2Var(isSgUnaryOp(sgn));
+//
+//      // The lattices associated the three memory objects
+//      MPINonDetLattice* opLat =
+//              dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(op));
+//      MPINonDetLattice* resLat =
+//              dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
+//
+////      ROSE_ASSERT(opLat);
+//
+//      // Copy lattice from the operand
+//      if(opLat) {resLat->copy(opLat);modified = true;}
+//      else {std::cerr << "nonDetAnalysis.cpp// SgUnaryOp traverse ... no opLat!! \n";}
+//    }
+//  // Conditional Operators: (x? y: z)
+//  } else if(isSgConditionalExp(sgn)) {
+//    // Memory objects denoted by the expression's condition, true and false sub-expressions
+//    varID condE  = SgExpr2Var(isSgConditionalExp(sgn)->get_conditional_exp());
+//    varID trueE  = SgExpr2Var(isSgConditionalExp(sgn)->get_true_exp());
+//    varID falseE = SgExpr2Var(isSgConditionalExp(sgn)->get_false_exp());
+//    varID res    = SgExpr2Var(isSgConditionalExp(sgn));
+//
+//    // The lattices associated the three memory objects
+//    MPINonDetLattice* resLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
+//    MPINonDetLattice* condLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(condE));
+//    MPINonDetLattice* trueLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(trueE));
+//    MPINonDetLattice* falseLat =
+//            dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(falseE));
+//    ROSE_ASSERT(condLat); ROSE_ASSERT(trueLat); ROSE_ASSERT(falseLat);
+//
+//    // Dependence flows from the sub-expressions of the SgConditionalExp to res
+//    if(resLat) {
+//      resLat->copy(condLat);
+//      resLat->meetUpdate(trueLat);
+//      resLat->meetUpdate(falseLat);
+//      modified = true;
+//    }
+//  // Variable Declaration
+//  } else if(isSgInitializedName(sgn)) {
+//    varID var(isSgInitializedName(sgn));
+//    MPINonDetLattice* varLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(var));
+//
+//    // If this variable is live
+//    if(varLat) {
+//      // If there was no initializer, initialize its lattice to Bottom
+//      if(isSgInitializedName(sgn)->get_initializer()==NULL)
+//        modified = varLat->setToBottom() || modified;
+//      // Otherwise, copy the lattice of the initializer to the variable
+//      else {
+//        varID init = SgExpr2Var(isSgInitializedName(sgn)->get_initializer());
+//        MPINonDetLattice* initLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(init));
+//        ROSE_ASSERT(initLat);
+//        varLat->copy(initLat);
+//        modified = true;
+//      }
+//    }
+//  // Initializer for a variable
+//  } else if(isSgAssignInitializer(sgn)) {
+//    // Memory objects of the initialized variable and the
+//    // initialization expression
+//    varID res = SgExpr2Var(isSgAssignInitializer(sgn));
+//    varID asgn = SgExpr2Var(isSgAssignInitializer(sgn)->get_operand());
+//
+//    // The lattices associated both memory objects
+//    MPINonDetLattice* resLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(res));
+//    MPINonDetLattice* asgnLat = dynamic_cast<MPINonDetLattice*>(prodLat->getVarLattice(asgn));
+//
+//    //ROSE_ASSERT(resLat);
+//
+//    // Copy lattice from the assignment
+//    if(resLat)
+//    {
+//      resLat->copy(asgnLat);
+//      modified = true;
+//    }
+//    else
+//    {
+//      std::cerr<<"nonDetAnalysis.cpp// SgAssignInitializer traverse ... no resLat!! \n";
+//    }
+//
+//  }
 
   return modified;
 }

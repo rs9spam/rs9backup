@@ -28,19 +28,18 @@ main (int argc, char **argv)
 
   //  MPI_Barrier (MPI_COMM_WORLD);
 
-  if (nprocs < 3)
+  if (nprocs < 4)
     {
       printf ("not enough tasks\n");
     }
   else if (rank == 0)
     {
-            
+
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
+      MPI_Send (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
       
     }
   else if (rank == 1)
@@ -51,21 +50,26 @@ main (int argc, char **argv)
 
       MPI_Send (buf0, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      MPI_Send (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
     }
   else if (rank == 2)
     {
-      memset (buf1, 1, buf_size);
+      memset (buf0, 0, buf_size);
 
      // sleep (60);
-
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      //
+      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      MPI_Send (buf0, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD); 
     }
+  else if (rank == 3)
+    {
+      memset (buf0, 0, buf_size);
 
-  //  MPI_Barrier (MPI_COMM_WORLD);
+     // sleep (60);
+       MPI_Send (buf1, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD); 
+    }
 
   MPI_Finalize ();
   printf ("(%d) Finished normally\n", rank);

@@ -1054,7 +1054,8 @@ SgFunctionDeclaration * CallTargetSet::getFirstVirtualFunctionDefinitionFromAnce
 
 void
 CallGraphBuilder::buildCallGraph (){
-  buildCallGraph(dummyFilter());
+  //buildCallGraph(dummyFilter());
+  buildCallGraph(customFunctionFilter());
 }
 
 

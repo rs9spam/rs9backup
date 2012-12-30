@@ -115,7 +115,46 @@ struct dummyFilter : public std::unary_function<bool,SgFunctionDeclaration*>
 struct builtinFilter : public std::unary_function<bool,SgFunctionDeclaration*>
 {
   bool operator() (SgFunctionDeclaration* node) const;
-}; 
+};
+
+//stoero, 11/26/2012
+/** This filter determines which function declarations get processed in the analysis. */
+struct customFunctionFilter
+{
+  bool operator()(SgFunctionDeclaration * funcDecl)
+  {
+    ROSE_ASSERT(funcDecl != NULL);
+
+    //Don't process any built-in functions
+    std::string filename = funcDecl->get_file_info()->get_filename();
+    if (filename.find("include") != std::string::npos)
+      return false;
+
+    //Exclude compiler generated functions, but keep template instantiations
+    if (funcDecl->get_file_info()->isCompilerGenerated()
+        && !isSgTemplateInstantiationFunctionDecl(funcDecl)
+        && !isSgTemplateInstantiationMemberFunctionDecl(funcDecl))
+      return false;
+
+    //We don't process functions that don't have definitions
+    if (funcDecl->get_definingDeclaration() == NULL)
+      return false;
+
+    if (funcDecl->get_definition() == NULL)
+      return false;
+
+    std::string functionName;
+    functionName = funcDecl->get_qualified_name().getString();
+    //std::cerr << "Qualified name: " << functionName << "\n";
+    if(functionName.find("::std::") != std::string::npos)
+    {
+      //std::cerr << "Filter: " << functionName << "\n";
+      return false;
+    }
+
+    return true;
+  }
+};
 
 class CallGraphBuilder
 {

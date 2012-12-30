@@ -268,7 +268,7 @@ void MPICFG::addMPIEdgestoICFG()
       new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
 
       //Add edge to MPI_ICFG graph
-      graph_->addDirectedEdge(new_graph_edge);
+
 //     std::cerr << "Add MPI Edge..." << endl;
     }
   }
@@ -316,7 +316,7 @@ void MPICFG::refineConstantMatch()
           (!checkConstCommWorldMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) )
       {
         removeMPIEdge(*edge_iter);
-//        std::cerr << "removing MPI Edge because of missmatch\n";
+        std::cerr << "removing MPI Edge because of miss match\n";
       }
 //      std::cerr << "------------------------------------------------------\n";
     }
@@ -360,7 +360,11 @@ void MPICFG::refineConstantMatch()
 void MPICFG::removeMPIEdge(SgDirectedGraphEdge* edge)
 {
   //isSgGraphNode(edge->get_from())
-  graph_->removeDirectedEdge(edge);
+  //also remove edge from the in and to node.....
+  if(graph_->removeDirectedEdge(edge))
+    std::cerr << "Successfully removed directed edge from graph\n";
+  else
+    std::cerr << "This edge did not exist! \n";
 }
 
 //=============================================================================================

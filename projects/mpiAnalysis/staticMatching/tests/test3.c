@@ -32,37 +32,33 @@ main (int argc, char **argv)
     {
       printf ("not enough tasks\n");
     }
-  else if (rank == 0)
+  else if (rank == 2)
     {
             
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
       MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-      MPI_Recv (buf0, buf_size, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      MPI_Recv (buf0, buf_size, MPI_INT, 1, 0, MPI_COMM_WORLD, &status);
       
     }
-  else if (rank == 1)
+  else if (rank == 0)
     {
       memset (buf0, 0, buf_size);
 
     //  sleep (30);
 
-      MPI_Send (buf0, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      MPI_Send (buf0, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
 
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      MPI_Send (buf1, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
     }
-  else if (rank == 2)
+  else if (rank == 1)
     {
       memset (buf1, 1, buf_size);
 
      // sleep (60);
 
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
-      MPI_Send (buf1, buf_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      MPI_Send (buf1, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
+      MPI_Send (buf1, buf_size, MPI_INT, 2, 0, MPI_COMM_WORLD);
     }
 
   //  MPI_Barrier (MPI_COMM_WORLD);

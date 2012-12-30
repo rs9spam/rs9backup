@@ -206,9 +206,9 @@ AstDOTGeneration::writeIncidenceGraphToDOTFile(SgIncidenceDirectedGraph* graph, 
 
       string additionalOptions = additionalNodeOptions(node);
 
-      string x;
-      string y;
-      x += additionalOptions;
+//      string x;
+//      string y;
+//      x += additionalOptions;
 
       nodeoption += additionalOptions;
 

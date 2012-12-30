@@ -941,7 +941,7 @@ void ContextInsensitiveInterProceduralDataflow::visit(const CGFunction* funcCG)
                     }
                     else
                     {
-                      std::cerr << "Caller of "<<funcCG->get_name().getString() <<endl;
+                      std::cerr << "Caller of "<<funcCG->get_name().getString() << " not added to remaining!"<<endl;
                     }
 
                   }
