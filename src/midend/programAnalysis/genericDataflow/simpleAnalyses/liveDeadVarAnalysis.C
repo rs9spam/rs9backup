@@ -279,6 +279,15 @@ public:
     // check for SgThrow
     if(sgn->get_operand() != NULL)
       ldva.used(sgn->get_operand());
+    else
+    {
+      std::cerr << "src/midend/programAnalysis/genericDataflow"
+                <<  "/simpleAnalyses/liveDeadVarAnalysis.C: \n"
+                << "No operations for SgUnaryOP: "
+                << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString()
+                << " line NUMBER: "
+                << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
+    }
   }
   // Conditionals (condE ? trueE : falseE)
   void visit(SgConditionalExp *sgn) {

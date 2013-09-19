@@ -206,9 +206,11 @@ AstDOTGeneration::writeIncidenceGraphToDOTFile(SgIncidenceDirectedGraph* graph, 
 
       string additionalOptions = additionalNodeOptions(node);
 
-//      string x;
-//      string y;
-//      x += additionalOptions;
+#if 0
+      string x;
+      string y;
+      x += additionalOptions;
+#endif
 
       nodeoption += additionalOptions;
 
@@ -483,9 +485,11 @@ AstDOTGeneration::evaluateSynthesizedAttribute(SgNode* node, DOTInheritedAttribu
   // printf ("nodeoption = %s size() = %ld \n",nodeoption.c_str(),nodeoption.size());
   // printf ("additionalOptions = %s size() = %ld \n",additionalOptions.c_str(),additionalOptions.size());
 
+#if 0
      string x;
      string y;
      x += additionalOptions;
+#endif
 
      nodeoption += additionalOptions;
 

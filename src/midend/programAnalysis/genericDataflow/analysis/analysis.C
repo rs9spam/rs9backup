@@ -574,7 +574,7 @@ void MergeAllReturnStates::visit(const Function& func, const DataflowNode& n, No
                 vector<Lattice*> exprLats;
                 for(vector<Lattice*>::const_iterator l=state->getLatticeAbove(analysis).begin(); l!=state->getLatticeAbove(analysis).end(); l++)
                 {
-                  if(isSgReturnStmt(sgn)->get_expression())
+ //                 if(isSgReturnStmt(sgn)->get_expression())
                     exprLats.push_back((*l)->project(isSgReturnStmt(sgn)->get_expression()));
                 }
                 if(analysisDebugLevel>=1) Dbg::dbg << "    Merging dataflow state of return value\n";

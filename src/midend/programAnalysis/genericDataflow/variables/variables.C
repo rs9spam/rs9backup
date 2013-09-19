@@ -194,7 +194,9 @@ bool varID::isValidVarExp(const SgExpression* exp)
 //        ROSE_ASSERT(exp->get_parent());
         if(!exp)
         {
-          std::cerr << "ERROR variables.C line 197 ... fix" << endl;
+          std::cerr << "ERROR src/midend/programAnalysis/genericDataflow"
+                    << "/variables/variables.C line 197 ... fix"
+                    << endl;
           return false;
         }
 //stoero end:
