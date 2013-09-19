@@ -34,7 +34,9 @@ INCLUDES = $(ROSE_INCLUDES) \
            -I$(SAF_SRC_ROOT)/state \
            -I$(SAF_SRC_ROOT)/variables
 
-
+#######################################################
+####                 Bin Programs                  ####                          
+#######################################################
 bin_PROGRAMS = simpleMpiA simpleInterMpiA
 simpleMpiA_SOURCES = simpleMpiA.cpp nonDetAnalysis.cpp nonDetAnalysis.h
 simpleInterMpiA_SOURCES = simpleInterMpiA.cpp nonDetAnalysis.cpp nonDetAnalysis.h

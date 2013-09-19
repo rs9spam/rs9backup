@@ -351,3 +351,19 @@ Makefile.in
 
 # /projects/compass/extensions/checkers/voidStar/
 /projects/compass/extensions/checkers/voidStar/voidStar.compass.external.makefile
+
+# stoero
+.cproject
+.project
+.settings/
+projects/mpiAnalysis/simpleStaticMarking/tests/a_simple_test.c.main.nondet
+projects/mpiAnalysis/simpleStaticMarking/tests/debug
+projects/mpiAnalysis/simpleStaticMarking/tests/detail.html
+projects/mpiAnalysis/simpleStaticMarking/tests/e_simple_test.c.main.nondet
+projects/mpiAnalysis/simpleStaticMarking/tests/summary.html
+projects/mpiAnalysis/simpleStaticMarking/tests/val_out.txt
+projects/mpiAnalysis/staticMatching/tests/detail.html
+projects/mpiAnalysis/staticMatching/tests/index.html
+projects/mpiAnalysis/staticMatching/tests/monte.c.main.MPIICFG.dot
+projects/mpiAnalysis/staticMatching/tests/summary.html
+projects/mpiAnalysis/staticMatching/tests/val_out.txt

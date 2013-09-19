@@ -840,6 +840,33 @@ const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
 }
 
 //=============================================================================================
+void MPICFG::mpicfgToDot()
+{
+  SgFunctionDefinition* main_def;
+  ROSE_ASSERT (isSgFunctionDefinition(start_));
+  main_def = (SgFunctionDefinition*)start_;
+  std::cerr << "\n## Going to dump the full MPI_ICFG\n";
+  string file_name = StringUtility
+      ::stripPathFromFileName(
+          main_def->get_file_info()->get_filenameString());
+  string dot_file_name = file_name
+                        + "."
+                        + main_def->get_declaration()->get_name()
+                        +".MPIICFG.dot";
+
+  mpicfgToDot(dot_file_name);
+}
+
+//=============================================================================================
+void MPICFG::mpicfgToDot(string file_name)
+{
+  SgFunctionDefinition* main_def;
+  ROSE_ASSERT (isSgFunctionDefinition(start_));
+  main_def = (SgFunctionDefinition*)start_;
+  cfgToDot(main_def, file_name);
+}
+
+//=============================================================================================
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
 {
   std::vector<SgDirectedGraphEdge*> out_edges = outEdges(dynamic_cast<SgGraphNode*>(node));

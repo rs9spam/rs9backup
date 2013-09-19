@@ -61,26 +61,31 @@ class MPICFG : public CFG
         is_filtered_ = is_filtered;
         start_ = node;
         const_prop_ = intraDataflowAnalysis;
-        buildMPIICFG();
+//        buildMPIICFG();
       }
-    SgNode* getEntry()
-    {
+
+    void build(){
+      buildMPIICFG();
+    }
+
+    SgNode* getEntry(){
       return start_;
     }
-    SgIncidenceDirectedGraph* getGraph()
-    {
+
+    SgIncidenceDirectedGraph* getGraph(){
       return graph_;
     }
+
     SgGraphNode* getGraphNode(CFGNode n) {
       return alNodes_[n];
     }
+
     //! Build CFG according to the 'is_filtered_' flag.
-    virtual void buildCFG()
-    {
+    virtual void buildCFG(){
       buildFullCFG();
     }
-    //void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
 
+    //void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
     std::map<CFGNode, SgGraphNode*> alNodes_;
     std::map<CFGNode, SgGraphNode*>	mpiSendNodes_;
     std::map<CFGNode, SgGraphNode*> mpiRecvNodes_;
@@ -89,18 +94,25 @@ class MPICFG : public CFG
 
     //! Build CFG for debugging.
     virtual void buildFullCFG();
+
     //! Outer constructor calling construct.....
     void buildMPIICFG();
+
     //! Find all MPI_Send function calls and insert the pairs into mpiSendNodes
     void buildMPISend();
+
     //! Check if SgFunctionCall node is of type MPI Send, MPI_Isend, ...
     bool isMPISend(SgNode* expr);
+
     //! Find all MPI_Recv function calls and insert the pairs into mpiRecvNodes
     void buildMPIRecv();
+
     //! Check if SgFunctionCall node is of type MPI_Recv, MPI_Irecv, ...
     bool isMPIRecv(SgNode* expr);
+
     //! Add all possible MPI Edges to MPI_ICFG
     void addMPIEdgestoICFG();
+
     //! remove the SgDirectedGraphEdge from the MPI_ICFG
     void removeMPIEdge(SgDirectedGraphEdge* edge);
 
@@ -113,12 +125,15 @@ class MPICFG : public CFG
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant Type Arguments do not match!
     bool checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant Size Arguments do not match!
     bool checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant Tag Arguments do not match!
     bool checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant CommWorld Arguments do not match!
     bool checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
@@ -128,6 +143,12 @@ class MPICFG : public CFG
 
     //! Returns the corresponding SGNode from SgGraphNode
     const CFGNode getCFGNode(SgGraphNode* node);
+
+    //! Output the graph to a DOT file and generates default file name.
+    void mpicfgToDot();
+
+    //! Output the graph to a DOT file
+    void mpicfgToDot(string file_name);
 };
 
 

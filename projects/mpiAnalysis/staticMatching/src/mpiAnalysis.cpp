@@ -1,6 +1,6 @@
 // Example translator to generate dot files of virtual,
-// interprocedural control flow graphs
-// Extended to build an mpi cfg
+// inter_procedural control flow graphs
+// Extended to build an mpi_cfg
 
 #include "rose.h"
 #include "mpiCFG.h"
@@ -29,10 +29,7 @@
 
 using namespace std;
 
-
 int numFails = 0, numPass = 0;
-
-
 
 int main(int argc, char *argv[])
 {
@@ -41,12 +38,14 @@ int main(int argc, char *argv[])
   ROSE_ASSERT (project != NULL);
 
   /////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////////////////////
-  //Performe Interprocedural constant propagation in order to gain additional information
+  //Perform inter_procedural constant propagation in order to gain additional information
+  //src/midend/programAnalysis/gernericDataflow/analysis/analysisCommne.h
+  //initializes CFGUtils, builds Call graph as an SgIncidenceDirected Graph
+  //SgInterface annotateExpressionwithUniqeName
   initAnalysis(project);
   Dbg::init("Live dead variable analysis Test", ".", "index.html");
-  liveDeadAnalysisDebugLevel = 1;
-  analysisDebugLevel = 1;
+//  liveDeadAnalysisDebugLevel = 1;
+//  analysisDebugLevel = 1;
   LiveDeadVarsAnalysis ldva(project);
   UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   ciipd_ldva.runAnalysis();
@@ -56,7 +55,8 @@ int main(int argc, char *argv[])
   cgb.buildCallGraph();
   SgIncidenceDirectedGraph* graph = cgb.getGraph();
 
-  //use constant propagation within the context insensitive interprocedural dataflow driver
+  //use constant propagation within the
+  //context insensitive inter-procedural data-flow driver
   ConstantPropagationAnalysis cpA(&ldva);
 //  ConstantPropagationAnalysis cpA(NULL);
   ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
@@ -69,29 +69,22 @@ int main(int argc, char *argv[])
 //  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
 //  rankInter.runAnalysis();
 
-  ///////////////////////////////////////////////////////////////////////////////////////////
-
-  std::cerr << "\n## Going to create MPI_ICFG\n";
+  /////////////////////////////////////////////////////////////////////////////////////////////
+  std::cerr << "\n\n## Going to create MPI_ICFG changes today 18th of September";
+  //Find main function
   SgFunctionDeclaration* mainDefDecl = SageInterface::findMain(project);
   ROSE_ASSERT (mainDefDecl != NULL);
-
   SgFunctionDefinition* mainDef = mainDefDecl->get_definition();
   ROSE_ASSERT (mainDef != NULL);
 
+  //Initializes the mpi_cfg class
   MpiAnalysis::MPICFG mpi_cfg(mainDef, &cpA);
-  std::cerr << "\n## Successfully created MPI_ICFG\n";
-
+  //Builds the full mpi_cfg and performs all possible pruning steps.
+  mpi_cfg.build();
+  std::cerr << "\n## Successfully created MPI_ICFG";
   // Dump out the full MPI_CFG
-  std::cerr << "\n## Going to dump the full MPI_ICFG\n";
-
-  string fileName =
-      StringUtility::stripPathFromFileName(mainDef->get_file_info()->get_filenameString());
-  string dotFileName1 = fileName+"."+ mainDef->get_declaration()->get_name() +".MPIICFG.dot";
-
-  mpi_cfg.cfgToDot(mainDef, dotFileName1);
-  std::cerr << "\n## Dumped out the full MPI_CFG as\n" << dotFileName1 << endl;
-
+  mpi_cfg.mpicfgToDot();
+  std::cerr << "## Dumped out the full MPI_CFG as\n";
   // Call functions to refine the graph.......
-
   return 0;
 }

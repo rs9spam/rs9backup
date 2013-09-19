@@ -410,6 +410,7 @@ void LiveDeadVarsTransfer::visit(SgReturnStmt *sgn) {
     used(sgn->get_expression());
   else
   {
+    std::cerr << "src/midend/programAnalysis/genericDataflow/simpleAnalyses/liveDeadVarAnalysis.C: \n";
     std::cerr << "No expression for Return stmt at: ";
     std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
     std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
@@ -420,6 +421,7 @@ void LiveDeadVarsTransfer::visit(SgExprStatement *sgn) {
     used(sgn->get_expression());
   else
   {
+    std::cerr << "src/midend/programAnalysis/genericDataflow/simpleAnalyses/liveDeadVarAnalysis.C: \n";
     std::cerr << "No expression at: ";
     std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
     std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
@@ -430,6 +432,7 @@ void LiveDeadVarsTransfer::visit(SgCaseOptionStmt *sgn) {
     used(sgn->get_key());
   else
   {
+    std::cerr << "src/midend/programAnalysis/genericDataflow/simpleAnalyses/liveDeadVarAnalysis.C: \n";
     std::cerr << "No key for case option stmt at: ";
     std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
     std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
@@ -439,6 +442,7 @@ void LiveDeadVarsTransfer::visit(SgCaseOptionStmt *sgn) {
     used(sgn->get_key_range_end());
   else
   {
+    std::cerr << "src/midend/programAnalysis/genericDataflow/simpleAnalyses/liveDeadVarAnalysis.C: \n";
     std::cerr << "No key range for case option stmt at: ";
     std::cerr << "file NAME: " << isSgLocatedNode(sgn)->getFilenameString();
     std::cerr << " line NUMBER: " << isSgLocatedNode(sgn)->get_file_info()->get_line() << std::endl;
