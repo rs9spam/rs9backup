@@ -30,43 +30,68 @@ class SgDirectedGraphEdge;
 
 namespace MpiAnalysis
 {
+//using namespace StaticMPICFG;
+//using VirtualMPICFG::CFGNode;
+//using VirtualMPICFG::CFGEdge;
 
 using namespace StaticCFG;
 using VirtualCFG::CFGNode;
 using VirtualCFG::CFGEdge;
 
-//using namespace StaticMPICFG;
-//using VirtualMPICFG::CFGNode;
-//using VirtualMPICFG::CFGEdge;
-
 typedef std::pair<VirtualCFG::CFGNode, SgGraphNode*> pair_n;
+typedef std::pair<VirtualCFG::CFGNode,VirtualCFG::CFGNode> pair_cfg_node;
+typedef std::multimap<VirtualCFG::CFGNode, VirtualCFG::CFGNode>::iterator Conn_It;
 
+//###################################################################################
 //CFG is from StaticCFG
 class MPICFG : public CFG
 {
-  IntraProceduralDataflow* const_prop_;
+//-----------------------------------------------------------------------------------
+  private:
 
+//===================================================================================
   protected:
     virtual void buildCFG(CFGNode n,
                   std::map<CFGNode, SgGraphNode*>& all_nodes,
                   std::set<CFGNode>& explored,
                   ClassHierarchyWrapper* classHierarchy);
+
+    //Constant Propagation Element
+    //Required for constant propagation pruning
+    IntraProceduralDataflow* const_prop_;
+
+    //void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
+    //all nodes already defined in staticCFG.h
+    //std::map<CFGNode, SgGraphNode*> all_nodes_;
+
+    //pointer to the whole project
+    SgNode* mpi_project_;
+
+    std::map<CFGNode, SgGraphNode*> mpi_send_nodes_;
+    std::map<CFGNode, SgGraphNode*> mpi_recv_nodes_;
+    //ALL possible MPI connections between MPI_Send and MPI_Recv
+    std::multimap<CFGNode, CFGNode> mpi_connections_;
+
+    //std::map<CFGEdge, SgDirectedGraphEdge*> mpiCommEdges_;
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   public:
     MPICFG() : CFG() {}
 
-    //! The valid nodes are SgProject, SgStatement, SgExpression and SgInitializedName
-    MPICFG(SgNode* node, IntraProceduralDataflow* intraDataflowAnalysis, bool is_filtered = false)
-      : CFG() {
-        graph_ = NULL;
-        is_filtered_ = is_filtered;
-        start_ = node;
-        const_prop_ = intraDataflowAnalysis;
-//        buildMPIICFG();
+    //! Valid node types are SgProject, SgStatement, SgExpression, SgInitializedName
+    MPICFG(SgNode* node,
+           IntraProceduralDataflow* intraDataflowAnalysis,
+           bool is_filtered = false)
+      : CFG() { graph_ = NULL;
+                mpi_project_ = NULL;
+                is_filtered_ = is_filtered;
+                start_ = node;
+                const_prop_ = intraDataflowAnalysis;
       }
 
-    void build(){
-      buildMPIICFG();
-    }
+    //Entry to build the full MPIICFG
+    //TODO: add the pruning option parameters to the build function
+    void build();
 
     SgNode* getEntry(){
       return start_;
@@ -77,20 +102,13 @@ class MPICFG : public CFG
     }
 
     SgGraphNode* getGraphNode(CFGNode n) {
-      return alNodes_[n];
+      return all_nodes_[n];
     }
 
     //! Build CFG according to the 'is_filtered_' flag.
     virtual void buildCFG(){
       buildFullCFG();
     }
-
-    //void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
-    std::map<CFGNode, SgGraphNode*> alNodes_;
-    std::map<CFGNode, SgGraphNode*>	mpiSendNodes_;
-    std::map<CFGNode, SgGraphNode*> mpiRecvNodes_;
-    //std::map<CFGEdge, SgDirectedGraphEdge*> mpiCommEdges_;
-    CFGNode neededStart_;
 
     //! Build CFG for debugging.
     virtual void buildFullCFG();
@@ -110,9 +128,14 @@ class MPICFG : public CFG
     //! Check if SgFunctionCall node is of type MPI_Recv, MPI_Irecv, ...
     bool isMPIRecv(SgNode* expr);
 
+    //! Fills a Map with all possible match sets, ...
+    bool buildFullMPIMatchSet();
+
     //! Add all possible MPI Edges to MPI_ICFG
     void addMPIEdgestoICFG();
-
+#if 0
+    void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
+#endif
     //! remove the SgDirectedGraphEdge from the MPI_ICFG
     void removeMPIEdge(SgDirectedGraphEdge* edge);
 
@@ -124,19 +147,19 @@ class MPICFG : public CFG
 
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant Type Arguments do not match!
-    bool checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    bool constTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
     //! Compares the data type of the MPI_Send and MPI_Recv node
-    //!returns false only if constant Size Arguments do not match!
-    bool checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    //!returns false only if constant Size Arguments are not valid for a match!
+    bool constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant Tag Arguments do not match!
-    bool checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    bool constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
     //! Compares the data type of the MPI_Send and MPI_Recv node
     //!returns false only if constant CommWorld Arguments do not match!
-    bool checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
+    bool constCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
     bool hasConstValue(SgNode* node);
     int getConstPropValue(SgNode* node);
@@ -144,44 +167,40 @@ class MPICFG : public CFG
     //! Returns the corresponding SGNode from SgGraphNode
     const CFGNode getCFGNode(SgGraphNode* node);
 
-    //! Output the graph to a DOT file and generates default file name.
+    //! Output the MPI ICFG to a DOT file and generates default file name.
     void mpicfgToDot();
 
-    //! Output the graph to a DOT file
-    void mpicfgToDot(string file_name);
+    //! Output the MPI ICFG to a DOT file.
+    void mpicfgToDot(const std::string& file_name);
+
+    //! Output the possible communications to a Dot graph and generates file name.
+    void mpiCommToDot();
+
+    //! Output the possible communications to a Dot graph.
+    void mpiCommToDot(const std::string& file_name);
+    void mpiPrintDotHeader(std::ostream& o);
+    void mpiPrintNodes(std::ostream& o);
+    void mpiPrintEdges(std::ostream& o);
+    void mpiPrintNode(std::ostream& o, const VirtualCFG::CFGNode& node);
+    void mpiPrintEdge(std::ostream& o,
+                      const VirtualCFG::CFGNode& x,
+                      const VirtualCFG::CFGNode& y);
 };
 
 
-//class MPICFG_BWDataflow  : virtual public IntraProceduralDataflow
+//class MPIInfo
 //{
 //private:
+////  std::vector<CFGEdge>* mpi_outedges;
+////  std::vector<CFGEdge>* mpi_inedges;
 //
 //public:
-//
-//
+////  MPIInfo() {mpi_outedges=0; mpi_inedges=0;}
+////  std::vector<CFGEdge>* getMpiOutEdges();
+////  std::vector<CFGEdge>* getMpiInEdges();
+////  void addMpiOutEdge();
+////  void addMpiInEdge();
 //};
-//
-//class MPICFG_FWDataflow : virtual public IntraProceduralDataflow
-//{
-//private:
-//
-//public:
-//
-//};
-
-class MPIInfo
-{
-private:
-//  std::vector<CFGEdge>* mpi_outedges;
-//  std::vector<CFGEdge>* mpi_inedges;
-
-public:
-//  MPIInfo() {mpi_outedges=0; mpi_inedges=0;}
-//  std::vector<CFGEdge>* getMpiOutEdges();
-//  std::vector<CFGEdge>* getMpiInEdges();
-//  void addMpiOutEdge();
-//  void addMpiInEdge();
-};
 
 // The following are some auxiliary functions, since SgGraphNode cannot provide them.
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node);

@@ -5,19 +5,70 @@ using namespace std;
 #include "mpiCFG.h"
 #include <boost/foreach.hpp>
 #include <vector>
-
-#define foreach BOOST_FOREACH
+#include <set>
 
 namespace MpiAnalysis
 {
+#if 0
+=====================================================================================
+void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
+  // Creates a CFG edge and adding appropriate labels.
 
-//=============================================================================================
-//void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
-//  // Creates a CFG edge and adding appropriate labels.
-//
-//}
+}
+#endif
 
-//=============================================================================================
+//===================================================================================
+void MPICFG::build(){
+  mpi_project_ = start_;
+  // If the start node is an SgProject, build the CFG from main.
+  if(isSgProject(start_)) {
+    SgFunctionDeclaration* main_def_decl = SageInterface::findMain(start_);
+    if(main_def_decl == NULL)
+      ROSE_ASSERT(!"\nCannot build CFG for project without main function");
+    SgFunctionDefinition* main_def = main_def_decl->get_definition();
+    if(main_def == NULL)
+      ROSE_ASSERT (!"Cannot build CFG for project without main function");
+    start_ = main_def;
+  }
+  buildMPIICFG();
+}
+
+//===================================================================================
+void MPICFG::buildMPIICFG()
+{
+  buildFullCFG();
+  buildMPISend();
+  buildMPIRecv();
+  buildFullMPIMatchSet();
+//TODO: buildMPIPossibleMatchSet();
+  addMPIEdgestoICFG(); //TODO add the edges after the pruning process is performed ..
+
+  //  refineConstantMatch();
+  //pruneCfgUsingSimpleConstantPropagation ... added to the constant Match refinement
+  //TODO: implement this functions ...
+
+
+  //developeProcess_sets:
+  //start a constant propagation like functionality to create another analysis
+  //which adds lattices with process set information to every mpi node.
+
+  //refineSourceParameter()   //process sets required
+}
+
+//===================================================================================
+void MPICFG::buildFullCFG()
+{
+	std::set<VirtualCFG::CFGNode> explored;
+	graph_ = new SgIncidenceDirectedGraph;
+	ClassHierarchyWrapper classHierarchy(SageInterface::getProject());
+
+	CFGNode start;
+	start = start_->cfgForBeginning();
+
+	buildCFG(start, all_nodes_, explored, &classHierarchy);
+}
+
+//===================================================================================
 void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   // Makes a CFG edge, adding appropriate labels
   SgNode* fromNode = from.getNode();
@@ -25,18 +76,19 @@ void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   SgNode* toNode = to.getNode();
 
   // Exit early if the edge should not exist because of a control flow discontinuity
-  if (fromIndex == 1 && (isSgGotoStatement(fromNode) ||
-      isSgBreakStmt(fromNode) || isSgContinueStmt(fromNode)))
-  {
+  if (fromIndex == 1 && (isSgGotoStatement(fromNode)
+      || isSgBreakStmt(fromNode) || isSgContinueStmt(fromNode))) {
     return;
   }
   if (isSgReturnStmt(fromNode) && toNode == fromNode->get_parent()) {
     SgReturnStmt* rs = isSgReturnStmt(fromNode);
-    if (fromIndex == 1 || (fromIndex == 0 && !rs->get_expression())) return;
+    if (fromIndex == 1 || (fromIndex == 0 && !rs->get_expression()))
+      return;
   }
   if (isSgStopOrPauseStatement(fromNode) && toNode == fromNode->get_parent()) {
     SgStopOrPauseStatement* sps = isSgStopOrPauseStatement(fromNode);
-    if (fromIndex == 0 && sps->get_stop_or_pause() == SgStopOrPauseStatement::e_stop) return;
+    if (fromIndex == 0 && sps->get_stop_or_pause() == SgStopOrPauseStatement::e_stop)
+      return;
   }
   if (fromIndex == 1 && isSgSwitchStatement(fromNode) &&
       isSgSwitchStatement(fromNode)->get_body() == toNode) return;
@@ -45,35 +97,7 @@ void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   result.push_back(CFGEdge(from, to));
 }
 
-//=============================================================================================
-void MPICFG::buildFullCFG()
-{
-	std::set<VirtualCFG::CFGNode> explored;
-	graph_ = new SgIncidenceDirectedGraph;
-	ClassHierarchyWrapper classHierarchy(SageInterface::getProject());
-
-	// If the start node is an SgProject, build the CFG from main.
-	CFGNode start;
-	if ( isSgProject(start_) ) {
-	  SgFunctionDeclaration* mainDefDecl = SageInterface::findMain(start_);
-	  if (mainDefDecl == NULL)
-		  ROSE_ASSERT (!"Cannot build CFG for project with no main function");
-
-	  SgFunctionDefinition* mainDef = mainDefDecl->get_definition();
-	  if (mainDef == NULL)
-		  ROSE_ASSERT (!"Cannot build CFG for project with no main function");
-
-	  start = mainDef->cfgForBeginning();
-	} else {
-	  start = start_->cfgForBeginning();
-	}
-
-	buildCFG(start, all_nodes_, explored, &classHierarchy);
-	alNodes_ = all_nodes_;
-	neededStart_ = start;
-}
-
-//=============================================================================================
+//===================================================================================
 void MPICFG::buildCFG(CFGNode n,
                        std::map<CFGNode, SgGraphNode*>& all_nodes,
                        std::set<CFGNode>& explored,
@@ -109,7 +133,8 @@ void MPICFG::buildCFG(CFGNode n,
          idx == SGCONSTRUCTORINITIALIZER_INTERPROCEDURAL_INDEX)) {
           ROSE_ASSERT( isSgExpression(sgnode) );
           Rose_STL_Container<SgFunctionDefinition*> defs;
-          CallTargetSet::getDefinitionsForExpression(isSgExpression(sgnode), classHierarchy, defs);
+          CallTargetSet::getDefinitionsForExpression(
+              isSgExpression(sgnode), classHierarchy, defs);
           if (defs.size() == 0) {
 //            std::cerr << sgnode->get_file_info()->get_filenameString()
 //                      << ":"
@@ -120,7 +145,7 @@ void MPICFG::buildCFG(CFGNode n,
 //                      << std::endl;
             outEdges = n.outEdges();
           } else {
-            foreach (SgFunctionDefinition* def, defs) {
+            BOOST_FOREACH(SgFunctionDefinition* def, defs) {
               addEdge(n, def->cfgForBeginning(), outEdges);
               addEdge(def->cfgForEnd(), CFGNode(sgnode, idx+1), outEdges);
             }
@@ -131,7 +156,7 @@ void MPICFG::buildCFG(CFGNode n,
     }
 
     std::set<CFGNode> targets;
-    foreach (const CFGEdge& edge, outEdges)
+    BOOST_FOREACH(const CFGEdge& edge, outEdges)
     {
         CFGNode tar = edge.target();
         targets.insert(tar);
@@ -143,7 +168,9 @@ void MPICFG::buildCFG(CFGNode n,
         {
             to = new SgGraphNode;
             to->set_SgNode(tar.getNode());
-            to->addNewAttribute("info", new CFGNodeAttribute(tar.getIndex(), graph_));
+            to->addNewAttribute("info",
+                                new CFGNodeAttribute(tar.getIndex(),
+                                graph_));
             all_nodes[tar] = to;
             graph_->addNode(to);
         }
@@ -152,74 +179,58 @@ void MPICFG::buildCFG(CFGNode n,
         new_edge->addNewAttribute("info", new CFGEdgeAttribute<CFGEdge>(edge));
         graph_->addDirectedEdge(new_edge);
     }
-
-    foreach (const CFGNode& target, targets)
+    BOOST_FOREACH(const CFGNode& target, targets)
         buildCFG(target, all_nodes, explored, classHierarchy);
 }
 
-//=============================================================================================
-void MPICFG::buildMPIICFG()
-{
-  buildFullCFG();
-  buildMPISend();
-  buildMPIRecv();
-  addMPIEdgestoICFG();
-  refineConstantMatch();
-  //pruneCfgUsingSimpleConstantPropagation ... added to the constant Match refinement
-  //TODO: implement this functions ...
-
-  //developeProcess_sets:
-  //start a constant propagation like functionality to create another analysis what adds
-  //lattices with process set information to every mpi node.
-
-  //refineSourceParameter()   //process sets required
-}
-
-//=============================================================================================
+//===================================================================================
 void MPICFG::buildMPISend()
 {
-  foreach ( pair_n p, all_nodes_) {
+  BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
       if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
-        mpiSendNodes_[p.first] = p.second;
-        //TODO
-//        std::cerr<< "SIZE: " << mpiSendNodes_.size() << endl;
+        mpi_send_nodes_[p.first] = p.second;
+        //TODO: remove debug output
+//        std::cerr << endl
+//                  << "SIZE MPI SEND NODES: "
+//                  << mpi_send_nodes_.size();
       }
     }
   }
 }
 
-//=============================================================================================
+//===================================================================================
 bool MPICFG::isMPISend(SgNode* node)
 {
   string name;
   if( isSgFunctionCallExp(node)) {
     if( isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())) {
-      name = isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())->get_symbol()->get_name();
+      name = isSgFunctionRefExp(isSgFunctionCallExp(node)
+                                      ->get_function())->get_symbol()->get_name();
       if(name == "MPI_Send" || name == "MPI_Isend")
-      {
-        //TODO: remove DEBUG
-//        std::cerr << name << endl;
         return true;
-      }
     }
   }
   return false;
 }
 
-//=============================================================================================
+//===================================================================================
 void MPICFG::buildMPIRecv()
 {
-  foreach ( pair_n p, all_nodes_) {
+  BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
       if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
-        mpiRecvNodes_[p.first] = p.second;
+        mpi_recv_nodes_[p.first] = p.second;
+        //TODO: remove debug output
+//        std::cerr << endl
+//                  << "SIZE MPI RECV NODES: "
+//                  << mpi_recv_nodes_.size();
       }
     }
   }
 }
 
-//=============================================================================================
+//===================================================================================
 bool MPICFG::isMPIRecv(SgNode* node)
 {
   string name;
@@ -230,59 +241,66 @@ bool MPICFG::isMPIRecv(SgNode* node)
       name = isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())
                                                          ->get_symbol()->get_name();
       if(name == "MPI_Recv" || name == "MPI_Irecv")
-      {
-        //TODO: remove DEBUG
-//        std::cerr << name << endl;
         return true;
-      }
     }
   }
   return false;
 }
 
-//=============================================================================================
+//===================================================================================
+bool MPICFG::buildFullMPIMatchSet()
+{
+  BOOST_FOREACH(pair_n p_send, mpi_send_nodes_)
+    BOOST_FOREACH(pair_n p_recv, mpi_recv_nodes_)
+      mpi_connections_.insert( pair_cfg_node(p_send.first,p_recv.first));
+
+  return true;
+}
+
+//===================================================================================
 void MPICFG::addMPIEdgestoICFG()
 {
+  BOOST_FOREACH( pair_cfg_node c, mpi_connections_) {
+    SgDirectedGraphEdge* new_graph_edge =
+              new SgDirectedGraphEdge(all_nodes_[c.first],
+                                      all_nodes_[c.second], "anyname");
+
+    CFGEdge new_cfg_edge = CFGEdge((c.first), (c.second));
+
+    //std::cerr << new_cfg_edge.toString() << endl;
+    CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr
+                                      = new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
+    new_graph_edge->addNewAttribute("info", new_cfg_edge_attr);
+
+    CFGEdgeAttribute<bool>* mpi_info_attr = new CFGEdgeAttribute<bool>(true);
+    new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
+
+    //Add edge to MPI_ICFG graph
+    graph_->addDirectedEdge(new_graph_edge);
+//TODO: remove
+//    std::cerr << endl << "Add MPI Edge...";
+  }
 //  //create NewAttribute for SgNode (for send nodes) (class MPIInfo)
-//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
-//      iter1 != mpiSendNodes_.end(); iter1++)
+//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpi_send_nodes_.begin();
+//      iter1 != mpi_send_nodes_.end(); iter1++)
 //  {
 //    MPIInfo mpi_info = new MPIInfo();
 //  }
 //  //create NewAttribute for SgNode (for Recv nodes) (class MPIInfo)
-//  for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
-//      iter2 != mpiRecvNodes_.end(); iter2++)
+//  for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpi_recv_nodes_.begin();
+//      iter2 != mpi_recv_nodes_.end(); iter2++)
 //  {
 //
 //  }
 
-  foreach ( pair_n p_send, mpiSendNodes_) {
-    foreach ( pair_n p_recv, mpiRecvNodes_) {
-      SgDirectedGraphEdge* new_graph_edge =
-          new SgDirectedGraphEdge(p_send.second, p_recv.second, "anyname");
-      CFGEdge new_cfg_edge = CFGEdge((p_send.first), (p_recv.first));
-      //std::cerr << new_cfg_edge.toString() << endl;
-      CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr = new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
-      new_graph_edge->addNewAttribute("info", new_cfg_edge_attr);
-      CFGEdgeAttribute<bool>* mpi_info_attr = new CFGEdgeAttribute<bool>(true);
-      new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
-
-      //Add edge to MPI_ICFG graph
-
-//     std::cerr << "Add MPI Edge..." << endl;
-    }
-  }
-
-//  for(map<CFGNode, SgGraphNode*>::iterator iter1 = mpiSendNodes_.begin();
-//      iter1 != mpiSendNodes_.end(); iter1++)
-//
-//    for(map<CFGNode, SgGraphNode*>::iterator iter2 = mpiRecvNodes_.begin();
-//        iter2 != mpiRecvNodes_.end(); iter2++)
-//    {
-//      SgDirectedGraphEdge* new_graph_edge = new SgDirectedGraphEdge(iter1->second, iter2->second, "anyname");
-//      CFGEdge new_cfg_edge = CFGEdge((iter1->first), (iter2->first));
+//  BOOST_FOREACH( pair_n p_send, mpi_send_nodes_) {
+//    BOOST_FOREACH( pair_n p_recv, mpi_recv_nodes_) {
+//      SgDirectedGraphEdge* new_graph_edge =
+//          new SgDirectedGraphEdge(p_send.second, p_recv.second, "anyname");
+//      CFGEdge new_cfg_edge = CFGEdge((p_send.first), (p_recv.first));
 //      //std::cerr << new_cfg_edge.toString() << endl;
-//      CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr = new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
+//      CFGEdgeAttribute<CFGEdge>* new_cfg_edge_attr =
+//                                   new CFGEdgeAttribute<CFGEdge>(new_cfg_edge);
 //      new_graph_edge->addNewAttribute("info", new_cfg_edge_attr);
 //      CFGEdgeAttribute<bool>* mpi_info_attr = new CFGEdgeAttribute<bool>(true);
 //      new_graph_edge->addNewAttribute("mpi_info", mpi_info_attr);
@@ -291,35 +309,63 @@ void MPICFG::addMPIEdgestoICFG()
 //      graph_->addDirectedEdge(new_graph_edge);
 //
 //      //graph_->removeDirectedEdge(new_graph_edge);
-//
-//
 //      //graph_->addDirectedEdge(iter1->second, iter2->second, "mpi_info");
 //
-//      std::cerr << "Add MPI Edge..." << endl;
+//      std::cerr << endl << "Add MPI Edge...";
 //    }
+//  }
 }
 
-//=============================================================================================
+//===================================================================================
 void MPICFG::refineConstantMatch()
 {
 //  std::cerr << endl << "Refine: Constant Argument Matching" << "\n";
-  map<CFGNode, SgGraphNode*>::iterator node_iter;
-  std::vector<SgDirectedGraphEdge*>::iterator edge_iter;
-  for(node_iter = mpiSendNodes_.begin(); node_iter != mpiSendNodes_.end(); node_iter++)
-  {
-    std::vector<SgDirectedGraphEdge*> out_edges = mpiOutEdges((node_iter->second));
-    for(edge_iter = out_edges.begin(); edge_iter != out_edges.end(); edge_iter++)
+//  BOOST_FOREACH(pair_cfg_node p, mpi_connections_){
+//    if( !constTypeMatch(all_nodes_[p.first],all_nodes_[p.second])
+//        || !constSizeMatch(all_nodes_[p.first],all_nodes_[p.second])
+//        || !constTagMatch(all_nodes_[p.first],all_nodes_[p.second])
+//        || !constCommWorldMatch(all_nodes_[p.first],all_nodes_[p.second]))
+
+  Conn_It e_it = mpi_connections_.begin();
+  while(e_it != mpi_connections_.end()) {
+    if( !constTypeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+        || !constSizeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+        || !constTagMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+        || !constCommWorldMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second]))
     {
-      if( (!checkConstTypeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
-//          (!checkConstSizeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
-          (!checkConstTagMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) ||
-          (!checkConstCommWorldMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())) )
-      {
-        removeMPIEdge(*edge_iter);
-        std::cerr << "removing MPI Edge because of miss match\n";
-      }
-//      std::cerr << "------------------------------------------------------\n";
+      Conn_It save_it = e_it;
+      e_it++;
+      mpi_connections_.erase(save_it);
+
+//      Conn_It save_it = e_it;
+//      save_it++;
+//      mpi_connections_.erase(e_it);
+//      e_it = save_it;
+      //TODO:: Remove debug outptu.
+      std::cerr << "removing MPI Edge because of miss match\n";
     }
+    else
+      e_it++;
+  }
+
+//  map<CFGNode, SgGraphNode*>::iterator node_iter;
+//  std::vector<SgDirectedGraphEdge*>::iterator edge_iter;
+//  for(node_iter = mpi_send_nodes_.begin();
+//      node_iter != mpi_send_nodes_.end();
+//      node_iter++)
+//  {
+//    std::vector<SgDirectedGraphEdge*> out_edges = mpiOutEdges((node_iter->second));
+//    for(edge_iter = out_edges.begin(); edge_iter != out_edges.end(); edge_iter++)
+//    {
+//      if(!constTypeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())
+////         || !constSizeMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())
+//         ||!constTagMatch((*edge_iter)->get_from(),(*edge_iter)->get_to())
+//         ||!constCommWorldMatch((*edge_iter)->get_from(),(*edge_iter)->get_to()))
+//      {
+//        removeMPIEdge(*edge_iter);
+//        std::cerr << "removing MPI Edge because of miss match\n";
+//      }
+//    }
 //    CFGNode tempnode = node_iter->first;
 //    vector<CFGEdge> oedges = tempnode.outEdges();
 //    for(edge_iter = oedges.begin(); edge_iter != oedges.end(); edge_iter++)
@@ -340,34 +386,32 @@ void MPICFG::refineConstantMatch()
 //      std::cerr << "##test" << endl;//sgiter->toString() << endl;
 //    }
 //
-//
 //    tempvector = mpiOutEdges(tempgn);
 //    for(sgiter = tempvector.begin(); sgiter != tempvector.end(); sgiter++)
 //    {
 //      std::cerr << "##test for MPI" << endl;//sgiter->toString() << endl;
 //    }
-
-    //vector<CFGEdge> oedges = tempnode.outEdges();
+//
+////    vector<CFGEdge> oedges = tempnode.outEdges();
 //    for(edge_iter = oedges.begin(); edge_iter != oedges.end(); edge_iter++)
 //    {
 //      std::cerr<< "\n out edges  \n" << edge_iter->source().toString() << endl
 //          << edge_iter->target().toString() << endl << endl;
 //    }
-  }
+//  }
 }
 
-//=============================================================================================
+//===================================================================================
 void MPICFG::removeMPIEdge(SgDirectedGraphEdge* edge)
 {
-  //isSgGraphNode(edge->get_from())
-  //also remove edge from the in and to node.....
+  std::cerr << endl << "#### WATCH OUT, PROBLEM WITH REMOVEING EDGES FROM GRAPH";
   if(graph_->removeDirectedEdge(edge))
     std::cerr << "Successfully removed directed edge from graph\n";
   else
     std::cerr << "This edge did not exist! \n";
 }
 
-//=============================================================================================
+//===================================================================================
 SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 {
   SgExpressionPtrList::iterator exp_iter;
@@ -375,7 +419,6 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
   if(argsptr.size() >= arg_nr)
   {
     exp_iter = argsptr.begin();
-//    std::cerr << "From size: " << argsptr.size() << endl;
 
     for(unsigned int i=1; i < arg_nr; i++)
       exp_iter++;
@@ -386,7 +429,7 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
   return NULL;
 }
 
-//=============================================================================================
+//===================================================================================
 //bool MPICFG::checkMatchTypes(SgGraphNode* send_node, SgGraphNode* recv_node)
 //{
 //  CFGNode from = getCFGNode(send_node);
@@ -404,7 +447,8 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //      isSgFunctionCallExp(to.getNode())->get_args()->get_expressions();
 //    SgExpressionPtrList::iterator to_exp_iter;
 //
-//    if(fromargsptr.size() >= MPI_NUM_SEND_EXP && toargsptr.size() >= MPI_NUM_RECV_EXP)
+//    if(fromargsptr.size() >= MPI_NUM_SEND_EXP
+//       && toargsptr.size() >= MPI_NUM_RECV_EXP)
 //    {
 //      from_exp_iter = fromargsptr.begin();
 //      to_exp_iter = toargsptr.begin();
@@ -422,21 +466,25 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //      SgExpression* to_exp = (*to_exp_iter);
 //      while(isSgUnaryOp(to_exp))
 //        to_exp = isSgUnaryOp(to_exp)->get_operand();
-////      std::cerr << "CLASS: " << (from_exp)->sage_class_name() << endl;
-////      std::cerr << "CLASS: " << (to_exp)->sage_class_name() << endl;
-////      std::cerr << "TYPE: " << (from_exp)->get_type()->unparseToString() << endl;
-////      std::cerr << "TYPE: " << (to_exp)->get_type()->unparseToString() << endl;
+////      std::cerr << "CLASS: " << (from_exp)->sage_class_name() << endl
+////                << "CLASS: " << (to_exp)->sage_class_name() << endl
+////                << "TYPE: "
+////                << (from_exp)->get_type()->unparseToString() << endl
+////                << "TYPE: "
+////                << (to_exp)->get_type()->unparseToString() << endl;
 //
 //      if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp))
 //      {
 ////        std::cerr << "Symbol name: "
-////                  << isSgVarRefExp(from_exp)->get_symbol()->get_name().str() << endl;
-////        std::cerr << "Symbol name: "
-////                  << isSgVarRefExp(to_exp)->get_symbol()->get_name().str() << endl;
+////                  << isSgVarRefExp(from_exp)->get_symbol()->get_name().str()
+////                  << endl
+////                  << "Symbol name: "
+////                  << isSgVarRefExp(to_exp)->get_symbol()->get_name().str()
+////                  << endl;
 //        //TODO ... #define a value for that .. check if it's always ompi_mpi ...
-//        std::string ompi = "ompi_mpi";
-//        std::string from_s = isSgVarRefExp(from_exp)->get_symbol()->get_name().str();
-//        std::string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
+//        string ompi = "ompi_mpi";
+//        string from_s = isSgVarRefExp(from_exp)->get_symbol()->get_name().str();
+//        string to_s = isSgVarRefExp(to_exp)->get_symbol()->get_name().str();
 //        if(from_s == to_s && from_s.substr(0,ompi.size()) == ompi)
 //        {
 //          std::cerr << "Send and Recv have same Type: " << from_s << endl;
@@ -448,8 +496,8 @@ SgExpression* getExpAt(SgExpressionPtrList argsptr ,unsigned int arg_nr)
 //  return false;
 //}
 
-//=============================================================================================
-bool MPICFG::checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+//===================================================================================
+bool MPICFG::constTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 {
   CFGNode from = getCFGNode(send_node);
   CFGNode to = getCFGNode(recv_node);
@@ -500,11 +548,12 @@ bool MPICFG::checkConstTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
       }
     }
   }
+  //The default return in case of uncertanty is true.
   return true;
 }
 
-//=============================================================================================
-bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+//===================================================================================
+bool MPICFG::constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 {
   CFGNode from = getCFGNode(send_node);
   CFGNode to = getCFGNode(recv_node);
@@ -527,7 +576,7 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
     {
       int from_i = isSgIntVal(from_exp)->get_value();
       int to_i = isSgIntVal(to_exp)->get_value();
-      return (from_i == to_i)? true : false;
+      return (from_i <= to_i)? true : false;
 //      if(from_i == to_i)
 //      {
 //        std::cerr << "Send and Recv have same constant size: " << from_i << endl;
@@ -551,7 +600,7 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
       {
         int from_i = getConstPropValue(to_exp);
         int to_i = isSgIntVal(to_exp)->get_value();
-        return (from_i == to_i) ? true : false;
+        return (from_i <= to_i) ? true : false;
       }
     }
     else if(isSgIntVal(to_exp))
@@ -567,10 +616,11 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
           //compare const values
           int from_i = getConstPropValue(from_exp);
           int to_i = isSgIntVal(to_exp)->get_value();
-          return (from_i == to_i) ? true : false;
+          return (from_i <= to_i) ? true : false;
 //          if(from_i == to_i)
 //          {
-//            std::cerr << "Send and Recv have same constant size: " << from_i << endl;
+//            std::cerr << "Send and Recv have same constant size: "
+//                      << from_i << endl;
 //            //TODO ... set Type checked Flag at communication edge.
 //            return true;
 //          }
@@ -596,7 +646,7 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
       {
         int from_i = getConstPropValue(from_exp);
         int to_i = getConstPropValue(to_exp);
-        return (from_i == to_i) ? true : false;
+        return (from_i <= to_i) ? true : false;
       }
     }
   }
@@ -604,8 +654,8 @@ bool MPICFG::checkConstSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 }
 
 
-//=============================================================================================
-bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+//===================================================================================
+bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 {
   CFGNode from = getCFGNode(send_node);
   CFGNode to = getCFGNode(recv_node);
@@ -712,8 +762,8 @@ bool MPICFG::checkConstTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
   return true;
 }
 
-//=============================================================================================
-bool MPICFG::checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
+//===================================================================================
+bool MPICFG::constCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 {
   CFGNode from = getCFGNode(send_node);
   CFGNode to = getCFGNode(recv_node);
@@ -759,13 +809,13 @@ bool MPICFG::checkConstCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_
   return true;
 }
 
-//=============================================================================================
+//===================================================================================
 //
 //                  Constant Propagation Lattice helper functions
 //
-//=============================================================================================
+//===================================================================================
 
-//=============================================================================================
+//===================================================================================
 bool MPICFG::hasConstValue(SgNode* node)
 {
   ROSE_ASSERT(node != NULL);
@@ -777,88 +827,71 @@ bool MPICFG::hasConstValue(SgNode* node)
       dynamic_cast <VarsExprsProductLattice *>
         (NodeState::getLatticeAbove(const_prop_, node,0)[0]);
 
-//    std::cerr << lattice->str() << endl;
-
     ConstantPropagationLattice* varlattice =
-        dynamic_cast <ConstantPropagationLattice*>(lattice->getVarLattice(varID(node)));
+        dynamic_cast <ConstantPropagationLattice*>
+                              (lattice->getVarLattice(varID(node)));
 
     if(varlattice != NULL)
     {
-//      std::cerr << "found the node " << var << endl;
-      //TODO: create an interesting constant value...
       if(varlattice->getLevel() == (short)2)
         return true;
     }
-//    std::cerr << "did not find node" << var << endl;
   }
-
   return false;
 }
 
-//=============================================================================================
+//===================================================================================//:TODO
 int MPICFG::getConstPropValue(SgNode* node)
 {
   ROSE_ASSERT(node != NULL);
 
-  if(isSgVarRefExp(node))
-  {
+  if(isSgVarRefExp(node)) {
     string var = node->unparseToString();
     VarsExprsProductLattice* lattice =
       dynamic_cast <VarsExprsProductLattice *>
         (NodeState::getLatticeAbove(const_prop_, node,0)[0]);
 
-//    std::cerr << lattice->str() << endl;
-
     ConstantPropagationLattice* varlattice =
         dynamic_cast <ConstantPropagationLattice*>(lattice->getVarLattice(varID(node)));
 
-    if(varlattice != NULL)
-    {
-      //TODO: remove this please
-      if(varlattice->getLevel() == (short)2)
-      {
-//        std::cerr << "found the node " << var
-//                  << " value: " << varlattice->getValue() << endl;
+    if(varlattice != NULL) {
+      if(varlattice->getLevel() == (short)2) {
         return varlattice->getValue();
       }
     }
-//    std::cerr << "did not find node" << var << endl;
   }
   return 0;
 }
 
-
-//=============================================================================================
+//===================================================================================
 const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
 {
-  map<CFGNode, SgGraphNode*>::iterator iter;
-  for(iter = alNodes_.begin(); iter != alNodes_.end(); iter++)
-    if(node == (iter->second))
-      return (iter->first);
-
+  BOOST_FOREACH(pair_n p, all_nodes_) {
+    if(node == p.second)
+      return p.first;
+  }
   return NULL;
 }
 
-//=============================================================================================
+//===================================================================================
 void MPICFG::mpicfgToDot()
 {
   SgFunctionDefinition* main_def;
   ROSE_ASSERT (isSgFunctionDefinition(start_));
   main_def = (SgFunctionDefinition*)start_;
-  std::cerr << "\n## Going to dump the full MPI_ICFG\n";
   string file_name = StringUtility
       ::stripPathFromFileName(
           main_def->get_file_info()->get_filenameString());
   string dot_file_name = file_name
                         + "."
                         + main_def->get_declaration()->get_name()
-                        +".MPIICFG.dot";
+                        +".mpiicfg.dot";
 
   mpicfgToDot(dot_file_name);
 }
 
-//=============================================================================================
-void MPICFG::mpicfgToDot(string file_name)
+//===================================================================================
+void MPICFG::mpicfgToDot(const std::string& file_name)
 {
   SgFunctionDefinition* main_def;
   ROSE_ASSERT (isSgFunctionDefinition(start_));
@@ -866,7 +899,140 @@ void MPICFG::mpicfgToDot(string file_name)
   cfgToDot(main_def, file_name);
 }
 
-//=============================================================================================
+//===================================================================================
+void MPICFG::mpiCommToDot()
+{
+  SgFunctionDefinition* main_def;
+  ROSE_ASSERT (isSgFunctionDefinition(start_));
+  main_def = (SgFunctionDefinition*)start_;
+  string file_name = StringUtility
+      ::stripPathFromFileName(
+          main_def->get_file_info()->get_filenameString());
+  string dot_file_name = file_name
+                        + "."
+                        + main_def->get_declaration()->get_name()
+                        +".mpi_comm.dot";
+
+  mpiCommToDot(dot_file_name);
+}
+
+//===================================================================================
+void MPICFG::mpiCommToDot(const std::string& file_name)
+{
+  std::ofstream ofile(file_name.c_str(), std::ios::out);
+  mpiPrintDotHeader(ofile);
+  mpiPrintNodes(ofile);
+  mpiPrintEdges(ofile);
+  ofile << "}\n";
+}
+
+//===================================================================================
+void MPICFG::mpiPrintDotHeader(std::ostream& o)
+{
+  o << "digraph MPI_COMMUNCATION_GRAPH {\n"
+    << "rankdir=TB\n"
+    << "node[style=\"filled\", color=\"yellow\"]\n";
+//    << "subgraph cluster0{\n"
+//    << "  node[style=\"filled\", color=\"white\"];\n"
+//    << "  style=\"filled\";\n"
+//    << "  color=\"lightgray\";\n"
+//    << "  ";
+  //go through all send nodes and receive nodes and enter their line
+  //numbers in a sorted integer vector.
+  std::set<int> lines;
+  SgLocatedNode* node;
+  BOOST_FOREACH(pair_n p, mpi_send_nodes_) {
+    if(isSgLocatedNode(p.first.getNode())) {
+      node = (SgLocatedNode*)(p.first.getNode());
+      if(node->get_file_info() != NULL) {
+        lines.insert((node->get_file_info())->get_line());
+      }
+      else {
+        std::cerr << "Node without file info!";
+      }
+    }
+    else {
+      std::cerr << "MPI Send SgNode is not an SgLocatedNode!";
+    }
+  }
+  BOOST_FOREACH(pair_n p, mpi_recv_nodes_) {
+    if(isSgLocatedNode(p.first.getNode())) {
+      node = (SgLocatedNode*)(p.first.getNode());
+      if(node->get_file_info() != NULL) {
+        lines.insert((node->get_file_info())->get_line());
+      }
+      else {
+        std::cerr << "Node without file info!";
+      }
+    }
+    else {
+      std::cerr << "MPI Send SgNode is not an SgLocatedNode!";
+    }
+  }
+  BOOST_FOREACH(int x, lines) {
+    o << x << " -> ";
+  }
+  o << "return;\n";
+//  o << "  label=\"lines\";\n}\n";
+}
+
+//===================================================================================
+void MPICFG::mpiPrintNodes(std::ostream& o)
+{
+  BOOST_FOREACH(pair_n p, mpi_send_nodes_) {
+    mpiPrintNode(o, p.first);
+  }
+  BOOST_FOREACH(pair_n p, mpi_recv_nodes_) {
+    mpiPrintNode(o, p.first);
+  }
+}
+
+//===================================================================================
+void MPICFG::mpiPrintEdges(std::ostream& o)
+{
+  BOOST_FOREACH(pair_cfg_node p, mpi_connections_) {
+    mpiPrintEdge(o, p.first, p.second);
+  }
+}
+
+//===================================================================================
+void MPICFG::mpiPrintNode(std::ostream& o, const VirtualCFG::CFGNode& node)
+{
+  std::string id = node.id();
+  int line = ((node.getNode())->get_file_info())->get_line();
+  std::string nodeColor = "black";
+  std::string nodeStyle = "solid";
+
+  if(isMPISend(node.getNode())) {
+    nodeColor = "blue";
+    nodeStyle = "bold";
+  }
+
+  o << id
+    << " [label=\"" << escapeString(node.toString()) << "\""
+    << ", color=\"" << nodeColor << "\""
+//    << ", style=\"" << (node.isInteresting()? "solid" : "dotted") << "\""
+    << ", style=\"" << nodeStyle << "\""
+    << "];\n";
+
+  o << "{ rank=same; " << line << "; " << id << "; }\n";
+}
+
+//===================================================================================
+void MPICFG::mpiPrintEdge(std::ostream& o,
+                          const VirtualCFG::CFGNode& x,
+                          const VirtualCFG::CFGNode& y)
+{
+  std::string id_x = x.id();
+  std::string id_y = y.id();
+
+  o << id_x << " -> " << id_y
+    << " [label=\"\""
+    << ", color=\"black\""
+    << "];\n";
+}
+
+//===================================================================================//:TODO
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
 {
   std::vector<SgDirectedGraphEdge*> out_edges = outEdges(dynamic_cast<SgGraphNode*>(node));
@@ -883,7 +1049,7 @@ std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
   return std::vector<SgDirectedGraphEdge*>(mpi_out_edges.begin(), mpi_out_edges.end());
 }
 
-//=============================================================================================
+//===================================================================================//:TODO
 std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node)
 {
   std::vector<SgDirectedGraphEdge*> in_edges = inEdges(dynamic_cast<SgGraphNode*>(node));

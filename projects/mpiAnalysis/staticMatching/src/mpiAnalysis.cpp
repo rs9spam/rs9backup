@@ -43,19 +43,23 @@ int main(int argc, char *argv[])
   //initializes CFGUtils, builds Call graph as an SgIncidenceDirected Graph
   //SgInterface annotateExpressionwithUniqeName
 
+  std::cerr << "\n## Init Analysis";
   initAnalysis(project);
   Dbg::init("Live dead variable analysis Test", ".", "index.html");
-//  liveDeadAnalysisDebugLevel = 1;
-//  analysisDebugLevel = 1;
+  liveDeadAnalysisDebugLevel = 0;
+  analysisDebugLevel = 0;
+  std::cerr << "\n## LiveDeadVars Analysis";
   LiveDeadVarsAnalysis ldva(project);
   UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   ciipd_ldva.runAnalysis();
 
+  std::cerr << "\n## Call Graph Builder";
   // prepare call graph
   CallGraphBuilder cgb(project);
   cgb.buildCallGraph();
   SgIncidenceDirectedGraph* graph = cgb.getGraph();
 
+  std::cerr << "\n## Constant Propagation Analysis";
   //use constant propagation within the
   //context insensitive inter-procedural data-flow driver
   ConstantPropagationAnalysis cpA(&ldva);
@@ -71,21 +75,26 @@ int main(int argc, char *argv[])
 //  rankInter.runAnalysis();
 
   /////////////////////////////////////////////////////////////////////////////////////////////
-  std::cerr << "\n\n## Going to create MPI_ICFG changes today 18th of September";
+  std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
   //Find main function
-  SgFunctionDeclaration* mainDefDecl = SageInterface::findMain(project);
-  ROSE_ASSERT (mainDefDecl != NULL);
-  SgFunctionDefinition* mainDef = mainDefDecl->get_definition();
-  ROSE_ASSERT (mainDef != NULL);
+//  SgFunctionDeclaration* main_def_decl = SageInterface::findMain(project);
+//  ROSE_ASSERT (main_def_decl != NULL);
+//  SgFunctionDefinition* main_def = main_def_decl->get_definition();
+//  ROSE_ASSERT (main_def != NULL);
 
   //Initializes the mpi_cfg class
-  MpiAnalysis::MPICFG mpi_cfg(mainDef, &cpA);
+  MpiAnalysis::MPICFG mpi_cfg(project, &cpA);
+//  MpiAnalysis::MPICFG mpi_cfg(main_def, &cpA);
   //Builds the full mpi_cfg and performs all possible pruning steps.
   mpi_cfg.build();
+
+
   std::cerr << "\n## Successfully created MPI_ICFG";
   // Dump out the full MPI_CFG
   mpi_cfg.mpicfgToDot();
-  std::cerr << "## Dumped out the full MPI_CFG as\n";
+  std::cerr << "\n## Dumped out the full MPI_CFG as";
+  mpi_cfg.mpiCommToDot();
+  std::cerr << "\n## Dumped out MPI communication as Dot graph\n";
   // Call functions to refine the graph.......
   return 0;
 }
