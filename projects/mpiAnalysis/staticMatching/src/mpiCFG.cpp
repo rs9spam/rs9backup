@@ -41,9 +41,12 @@ void MPICFG::buildMPIICFG()
   buildMPIRecv();
   buildFullMPIMatchSet();
 //TODO: buildMPIPossibleMatchSet();
-  addMPIEdgestoICFG(); //TODO add the edges after the pruning process is performed ..
 
-  //  refineConstantMatch();
+  refineConstantMatch();
+
+  addMPIEdgestoICFG();
+
+
   //pruneCfgUsingSimpleConstantPropagation ... added to the constant Match refinement
   //TODO: implement this functions ...
 
@@ -326,27 +329,36 @@ void MPICFG::refineConstantMatch()
 //        || !constTagMatch(all_nodes_[p.first],all_nodes_[p.second])
 //        || !constCommWorldMatch(all_nodes_[p.first],all_nodes_[p.second]))
 
-  Conn_It e_it = mpi_connections_.begin();
-  while(e_it != mpi_connections_.end()) {
-    if( !constTypeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
-        || !constSizeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
-        || !constTagMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
-        || !constCommWorldMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second]))
-    {
-      Conn_It save_it = e_it;
-      e_it++;
-      mpi_connections_.erase(save_it);
+//  bool finished = false;
+//  while(finished) {
 
-//      Conn_It save_it = e_it;
-//      save_it++;
-//      mpi_connections_.erase(e_it);
-//      e_it = save_it;
-      //TODO:: Remove debug outptu.
-      std::cerr << "removing MPI Edge because of miss match\n";
+    Conn_It e_it = mpi_connections_.begin();
+    while(e_it != mpi_connections_.end()) {
+      if( !constTypeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+          || !constSizeMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+          || !constTagMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second])
+          || !constCommWorldMatch(all_nodes_[(*e_it).first],all_nodes_[(*e_it).second]))
+      {
+#if 1
+        Conn_It save_it = e_it;
+        e_it++;
+        mpi_connections_.erase(save_it);
+
+//        Conn_It save_it = e_it;
+//        save_it++;
+//        mpi_connections_.erase(e_it);
+//        e_it = save_it;
+#else
+        e_it++;
+#endif
+        //TODO:: Remove debug outptu.
+
+        std::cerr << "\nOOO removing MPI Edge because of miss match";
+      }
+      else
+        e_it++;
     }
-    else
-      e_it++;
-  }
+//  }
 
 //  map<CFGNode, SgGraphNode*>::iterator node_iter;
 //  std::vector<SgDirectedGraphEdge*>::iterator edge_iter;
@@ -590,7 +602,7 @@ bool MPICFG::constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 //        return false;
 //      }
     }
-    else if(isSgIntVal(from_exp))//check the values from initial Constant propagation
+    if(isSgIntVal(from_exp))//check the values from initial Constant propagation
     {
 //      std::cerr << "check for constant propagation value" << endl;
       while(isSgUnaryOp(to_exp))
@@ -598,12 +610,13 @@ bool MPICFG::constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 
       if(isSgVarRefExp(to_exp) && hasConstValue(isSgNode(to_exp)))
       {
-        int from_i = getConstPropValue(to_exp);
-        int to_i = isSgIntVal(to_exp)->get_value();
+        int from_i = isSgIntVal(from_exp)->get_value();
+        int to_i = getConstPropValue(to_exp);
         return (from_i <= to_i) ? true : false;
       }
+      return true;
     }
-    else if(isSgIntVal(to_exp))
+    if(isSgIntVal(to_exp))
     {
 //      std::cerr << "check for constant propagation value" << endl;
       while(isSgUnaryOp(from_exp))
@@ -632,22 +645,21 @@ bool MPICFG::constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 //          }
         }
       }
+      return true;
     }
-    else
+
+    while(isSgUnaryOp(from_exp))
+      from_exp = isSgUnaryOp(from_exp)->get_operand();
+
+    while(isSgUnaryOp(to_exp))
+      to_exp = isSgUnaryOp(to_exp)->get_operand();
+
+    if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp) &&
+       hasConstValue(isSgNode(from_exp)) && hasConstValue(isSgNode(to_exp)))
     {
-      while(isSgUnaryOp(from_exp))
-        from_exp = isSgUnaryOp(from_exp)->get_operand();
-
-      while(isSgUnaryOp(to_exp))
-        to_exp = isSgUnaryOp(to_exp)->get_operand();
-
-      if(isSgVarRefExp(from_exp) && isSgVarRefExp(to_exp) &&
-         hasConstValue(isSgNode(from_exp)) && hasConstValue(isSgNode(to_exp)))
-      {
-        int from_i = getConstPropValue(from_exp);
-        int to_i = getConstPropValue(to_exp);
-        return (from_i <= to_i) ? true : false;
-      }
+      int from_i = getConstPropValue(from_exp);
+      int to_i = getConstPropValue(to_exp);
+      return (from_i <= to_i) ? true : false;
     }
   }
   return true;
@@ -674,6 +686,7 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
     if( (from_exp == NULL) || (to_exp == NULL) )
       ROSE_ASSERT (!"Cannot find tag SgExpression*");
 
+    //Both values are Integer Constants.
     if(isSgIntVal(from_exp) && isSgIntVal(to_exp))
     {
       int from_i = isSgIntVal(from_exp)->get_value();
@@ -692,6 +705,7 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
 //        return false;
 //      }
     }
+    //If send is MPI_ANY_TAG
     if(isSgMinusOp(from_exp))
       if(isSgIntVal(isSgMinusOp(from_exp)->get_operand()))
         if(isSgIntVal(isSgMinusOp(from_exp)->get_operand())->get_value() == 1)
@@ -700,6 +714,7 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
           //TODO ... set Type checked Flag at communication edge.
           return true;
         }
+    //If recv is MPI_ANY_TAG
     if(isSgMinusOp(to_exp))
       if(isSgIntVal(isSgMinusOp(to_exp)->get_operand()))
         if(isSgIntVal(isSgMinusOp(to_exp)->get_operand())->get_value() == 1)
@@ -711,7 +726,6 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
     //from_exp is int to_exp is int by constant propagation (check to_i == -1)
     if(isSgIntVal(from_exp))
     {
-//      std::cerr << "check for constant propagation value" << endl;
       while(isSgUnaryOp(to_exp))
         to_exp = isSgUnaryOp(to_exp)->get_operand();
 
@@ -725,6 +739,7 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
             return true;
           return (from_i == to_i) ? true : false;
         }
+      return true;
     }
     //to_exp is int from_exp is int by constant propagation (check from_i == -1)
     if(isSgIntVal(to_exp))
@@ -743,6 +758,7 @@ bool MPICFG::constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node)
             return true;
           return (from_i == to_i) ? true : false;
         }
+      return true;
     }
     //both are int by constant propagation
     while(isSgUnaryOp(from_exp))
@@ -931,7 +947,9 @@ void MPICFG::mpiPrintDotHeader(std::ostream& o)
 {
   o << "digraph MPI_COMMUNCATION_GRAPH {\n"
     << "rankdir=TB\n"
-    << "node[style=\"filled\", color=\"yellow\"]\n";
+    << "node[style=\"filled\", color=\"white\", fontcolor=\"white\"]\n"
+    << "edge[color=\"white\"]\n";
+
 //    << "subgraph cluster0{\n"
 //    << "  node[style=\"filled\", color=\"white\"];\n"
 //    << "  style=\"filled\";\n"
@@ -972,7 +990,9 @@ void MPICFG::mpiPrintDotHeader(std::ostream& o)
   BOOST_FOREACH(int x, lines) {
     o << x << " -> ";
   }
-  o << "return;\n";
+  o << "end;\n";
+  o << "node[fontcolor=\"black\"]\n";
+  o << "edge[color=\"black\"]\n";
 //  o << "  label=\"lines\";\n}\n";
 }
 
