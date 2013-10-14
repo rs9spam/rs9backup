@@ -12,7 +12,7 @@
 
 #include "latticeFull.h"
 #include "liveDeadVarAnalysis.h"
-#include "constantPropagation.h"
+#include "constantPropagationAnalysis.h"
 
 #define MPI_NUM_SEND_EXP 6
 #define MPI_NUM_RECV_EXP 7

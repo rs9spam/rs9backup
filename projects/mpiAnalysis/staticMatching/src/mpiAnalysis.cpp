@@ -21,11 +21,11 @@
 #include "analysisCommon.h"
 #include "analysis.h"
 #include "dataflow.h"
-#include "latticeFull.h"
-#include "printAnalysisStates.h"
-#include "constantPropagation.h"
+//#include "latticeFull.h"
+//#include "printAnalysisStates.h"
+#include "constantPropagationAnalysis.h"
 #include "liveDeadVarAnalysis.h"
-#include "rankAnalysis.h"
+//#include "rankAnalysis.h"
 
 using namespace std;
 
