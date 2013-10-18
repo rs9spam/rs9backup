@@ -1,456 +1,400 @@
-#include <set>
 #include "pSet.h"
 
-//===================================================================================
-std::set<unsigned int> PSet::getPSet()
+//static int debugLevel=1;
+
+/***********
+ * PSet *
+ ***********/
+//=======================================================================================
+PSet::PSet(bool empty, bound lb, bound hb)
 {
-  return pset_;
+  this->empty_ = empty;
+  this->lb_ = lb;
+  this->hb_ = hb;
 }
 
-//===================================================================================
-bool PSet::setPSet(std::set<unsigned int> pset)
+//=======================================================================================
+PSet::PSet(bool empty,
+     bool lb_abs, bool hb_abs,
+     int lnum, int hnum,
+     int lden, int hden,
+     int loff, int hoff)
 {
-  if(pset_ == pset)
+  this->empty_ = empty;
+  this->lb_ = bound(lb_abs, lnum, lden, loff);
+  this->hb_ = bound(hb_abs, hnum, hden, hoff);
+}
+
+//=======================================================================================
+PSet::PSet()
+{
+  this->empty_ = true;
+  this->lb_ = bound();
+  this->hb_ = bound();
+}
+
+//=======================================================================================
+bool PSet::isEmpty() { return empty_; }
+
+//=======================================================================================
+bool PSet::isLbAbs() { return lb_.abs; }
+
+//=======================================================================================
+bool PSet::isHbAbs() { return hb_.abs; }
+
+//=======================================================================================
+bool PSet::isAbsProcNumber()
+{
+  return ((lb_.abs && hb_.abs) || empty_) ? true : false;
+}
+
+//=======================================================================================
+int PSet::getAbsNumProc()
+{
+  if(empty_)
+    return 0;
+  if(isAbsProcNumber())
+    return hb_.o - lb_.o + 1;
+  return -1;
+}
+
+//=======================================================================================
+bool PSet::isMinBound()
+{
+  if(empty_)
     return false;
-  return true;
+  if(lb_.abs)
+    if(lb_.o == 0)
+      return true;
+  if(!lb_.abs)
+    if(lb_.n == 0 && lb_.o == 0)
+      return true;
+  return false;
 }
 
-//===================================================================================
-bool PSet::pSetUnion(std::set<unsigned int> pset)
+//=======================================================================================
+bool PSet::isMaxBound()
 {
-  if(pset_ == pset)
+  if(empty_)
     return false;
-
-  bool x = true;
-  std::set<unsigned int>::iterator it;
-  for(it = pset.begin(); it != pset.end(); ++it) {
-    pset_.insert(*it);
-  }
-
-  return true;
+  if(!hb_.abs && hb_.d != 0)
+    if(hb_.n == hb_.d && hb_.o == -1)
+      return true;
+  return false;
 }
 
-//===================================================================================
-bool PSet::pSetIntersection(std::set<unsigned int> pset)
+//=======================================================================================
+//Returns true if 100% sure about the decision
+bool PSet::contains(bound b)
 {
-//  if(pset_ == pset)
-//    return false;
-//
-//  std::set<unsigned int> tset = pset_;
-//  std::vector<unsigned int> hello(pset_.size());
-//  std::vector<unsigned int>::iterator temp_it;
-//  std::set<unsigned int>::iterator it;
-//
-//  it=std::set_intersection (pset.begin(), pset.end(),
-//                            tset.begin(), tset.end(), hello.begin());
-//
-//
-//  pset_.empty();
-//  for(temp_it = hello.begin(); temp_it < hello.end(); temp_it++)
-//    pset_.insert(temp_it);
-
-  return true;
+  return (b <= hb_ && b >= lb_);
 }
 
-//===================================================================================
-std::set<unsigned int> PSet::merge(PSet* ps1, PSet* ps2)
+//=======================================================================================
+bool PSet::interleavesOrTouches(const PSet& that) const
 {
-  std::set<unsigned int> ret_set;
-//  std::set<unsigned int> tset;
-//  std::set<unsigned int>::iterator it;
-//  tset = ps1->getPSet;
-//  for(it = tset.begin(); it < tset.end(); it++) {
-//    ret_set.insert(it);
-//  }
-//  tset = ps2->getPSet;
-//  for(it = tset.begin(); it < tset.end(); it++) {
-//    ret_set.insert(it);
-//  }
-  return ret_set;
+  //false if
+  //either p1_hb < p2_lb - 1  or p2_hb < p1_lb -1
+  // compare if higher bound of p_set1 is smaller than lower bound -1 of p_set2
+//  if(p_set1.compareHbSmallerLb(p_set2) ||
+//     p_set2.compareHbSmallerLb(p_set1))
+  if((this->hb_ >= (that.lb_ - 1)) && ((this->lb_ - 1) <= that.hb_))
+    return true;
+
+  return false;
 }
 
+//=======================================================================================
+PSet PSet::combineWith(const PSet& p) const
+{
+  if(this->empty_)
+    return p;
+  if(p.empty_)
+    return *this;
+  if(!this->interleavesOrTouches(p))
+    return *this;
+  bool empty = false;
+  bound lb, hb;
 
+  if(*this < p)
+    lb = this->getLBound();
+  else
+    lb = p.getLBound();
 
+  if(*this > p)
+    hb = this->getHBound();
+  else
+    hb = p.getHBound();
 
+  return PSet(empty, lb, hb);
+}
 
+//=======================================================================================
+PSet PSet::intersectWith(const PSet& p) const
+{
+  //TODO:
+  return PSet();
+}
 
+//=======================================================================================
+int PSet::getLnum() const { return lb_.n; }
 
+//=======================================================================================
+int PSet::getHnum() const { return hb_.n; }
 
+//=======================================================================================
+int PSet::getLden() const { return lb_.d; }
 
+//=======================================================================================
+int PSet::getHden() const { return hb_.d; }
 
+//=======================================================================================
+int PSet::getLoff() const { return lb_.o; }
 
+//=======================================================================================
+int PSet::getHoff() const { return hb_.o; }
 
+//=======================================================================================
+bound PSet::getLBound() const { return lb_; }
 
+//=======================================================================================
+bound PSet::getHBound() const { return hb_; }
 
+//=======================================================================================
+void PSet::setLnum( const int& lnum ) { this->lb_.n = lnum; }
 
+//=======================================================================================
+void PSet::setHnum( const int& hnum ) { this->hb_.n = hnum; }
 
+//=======================================================================================
+void PSet::setLden( const int& lden ) { this->lb_.d = lden; }
 
+//=======================================================================================
+void PSet::setHden( const int& hden ) { this->hb_.d = hden; }
 
+//=======================================================================================
+void PSet::setLoff( const int& loff ) { this->lb_.o = loff; }
 
+//=======================================================================================
+void PSet::setHoff( const int& hoff ) { this->hb_.o = hoff; }
 
+//=======================================================================================
+void PSet::setLow(bool abs, int num, int den, int off)
+{
+  this->lb_ = bound(abs, num, den, off);
+}
 
+//=======================================================================================
+void PSet::setHigh(bool abs, int num, int den, int off)
+{
+  this->hb_ = bound(abs, num, den, off);
+}
+
+//=======================================================================================
+void PSet::setLBound(const bound& b) { this->lb_(b); }
+
+//=======================================================================================
+void PSet::setHBound(const bound& b) { this->hb_(b); }
+
+#if 0
 ////=======================================================================================
-//PSet::PSet(bool empty_range,
-//     bool lb_abs, bool hb_abs,
-//     int lnum, int hnum,
-//     int lden, int hden,
-//     int loff, int hoff)
+//bool PSet::isUnder(bound b)
 //{
-//  this->empty_range = empty_range;
-//  this->hb_abs = hb_abs;
-//  this->lb_abs = lb_abs;
-//  this->lnum = lnum;
-//  this->hnum = hnum;
-//  this->lden = lden;
-//  this->hden = hden;
-//  this->loff = loff;
-//  this->hoff = hoff;
-//}
-//
-////=======================================================================================
-//PSet::PSet()
-//{
-//  this->empty_range = true;
-//  this->hb_abs = true;
-//  this->lb_abs = true;
-//  this->lnum = 0;
-//  this->hnum = 0;
-//  this->lden = 1;
-//  this->hden = 1;
-//  this->loff = 0;
-//  this->hoff = 0;
-//}
-//
-////=======================================================================================
-//bool PSet::isEmpty() { return empty_range; }
-////=======================================================================================
-//bool PSet::isLbAbs() { return lb_abs; }
-////=======================================================================================
-//bool PSet::isHbAbs() { return hb_abs; }
-//
-////=======================================================================================
-//bool PSet::isAbsProcNumber()
-//{
-//  return ((lb_abs && hb_abs) || empty_range)?true:false;
-//}
-//
-////=======================================================================================
-//int PSet::getNumProc()
-//{
-//  if(empty_range)
-//    return 0;
-//  if(isAbsProcNumber())
-//    return hoff-loff+1;
-//  return -1;
-//}
-//
-////=======================================================================================
-//int PSet::getLnum() { return lnum; }
-////=======================================================================================
-//int PSet::getHnum() { return hnum; }
-////=======================================================================================
-//int PSet::getLden() { return lden; }
-////=======================================================================================
-//int PSet::getHden() { return hden; }
-////=======================================================================================
-//int PSet::getLoff() { return loff; }
-////=======================================================================================
-//int PSet::getHoff() { return hoff; }
-////=======================================================================================
-//void PSet::setLnum( int lnum ) { this->lnum = lnum; }
-////=======================================================================================
-//void PSet::setHnum( int hnum ) { this->hnum = hnum; }
-////=======================================================================================
-//void PSet::setLden( int lden ) { this->lden = lden; }
-////=======================================================================================
-//void PSet::setHden( int hden ) { this->hden = hden; }
-////=======================================================================================
-//void PSet::setLoff( int loff ) { this->loff = loff; }
-////=======================================================================================
-//void PSet::setHoff( int hoff ) { this->hoff = hoff; }
-////=======================================================================================
-//void PSet::setLow(bool abs, int num, int den, int off)
-//{
-//  this->lb_abs = abs;
-//  this->lnum = num;
-//  this->lden = den;
-//  this->loff = off;
-//}
-////=======================================================================================
-//void PSet::setHigh(bool abs, int num, int den, int off)
-//{
-//  this->hb_abs = abs;
-//  this->hnum = num;
-//  this->hden = den;
-//  this->hoff = off;
-//}
-//
-//
-//
-//
-////=======================================================================================
-//bool PSet::contains(bool abs, int num, int den, int off)
-//{
-//  //not smaller than lb
-//  if(lb_abs && abs)
-//    if(off<loff)
-//      return false;
-//  if(!lb_abs && abs)
-//    return false;
-//  if(!lb_abs && !abs)
-//  {
-//    if( ((float)this->lnum/(float)this->lden) >
-//        ((float)num/(float)den) )
-//      return false;
-//    if( ((float)this->lnum/(float)this->lden) ==
-//        ((float)num/(float)den) )
-//      if(off<loff)
-//        return false;
-//  }
-//
-//  //not bigger than higher bound
-//  if(hb_abs && abs)
-//    if(off>hoff)
-//      return false;
-//  if(hb_abs && !abs)
-//    return false;
-//  if(!hb_abs && !abs)
-//  {
-//    if( ((float)this->hnum/(float)this->hden) <
-//        ((float)num/(float)den) )
-//      return false;
-//    if( ((float)this->hnum/(float)this->hden) ==
-//        ((float)num/(float)den) )
-//      if(off>hoff)
-//        return false;
-//  }
-//
-//  return true;
+//  return isUnder(b.abs, b.n, b.d, b.o);
 //}
 //
 ////=======================================================================================
 //bool PSet::isUnder(bool abs, int num, int den, int off)
 //{
 //  //if smaller than lower bound
-//  if(lb_abs && abs)
-//    if(off<loff)
+//  if(lb_.abs && abs)
+//    if(off < lb_.o)
 //      return true;
-//  if(!lb_abs && abs)
+//  if(!lb_.abs && abs)
 //    return true;
-//  if(!lb_abs && !abs)
+//  if(!lb_.abs && !abs)
 //  {
-//    if( ((float)this->lnum/(float)this->lden) >
+//    if( ((float)this->lb_.n/(float)this->lb_.d) >
 //        ((float)num/(float)den) )
 //      return true;
-//    if( ((float)this->lnum/(float)this->lden) ==
+//    if( ((float)this->lb_.n/(float)this->lb_.d) ==
 //        ((float)num/(float)den) )
-//      if(off<loff)
+//      if(off<lb_.o)
 //        return true;
 //  }
 //  return false;
+//}
+//
+////=======================================================================================
+//bool PSet::isOver(bound b)
+//{
+//  return isOver(b.abs, b.n, b.d, b.o);
 //}
 //
 ////=======================================================================================
 //bool PSet::isOver(bool abs, int num, int den, int off)
 //{
 //  //true if it is bigger than upper bound
-//  if(hb_abs && abs)
-//    if(off>hoff)
+//  if(hb_.abs && abs)
+//    if(off>hb_.o)
 //      return true;
-//  if(hb_abs && !abs)
+//  if(hb_.abs && !abs)
 //    return true;
-//  if(!hb_abs && !abs)
+//  if(!hb_.abs && !abs)
 //  {
-//    if( ((float)this->hnum/(float)this->hden) <
+//    if( ((float)this->hb_.n/(float)this->hb_.d) <
 //        ((float)num/(float)den) )
 //      return true;
-//    if( ((float)this->hnum/(float)this->hden) ==
+//    if( ((float)this->hb_.n/(float)this->hb_.d) ==
 //        ((float)num/(float)den) )
-//      if(off>hoff)
+//      if(off>hb_.o)
 //        return true;
 //  }
 //  return false;
 //}
-//
-//
 ////=======================================================================================
 //bool PSet::compareHbSmallerLb(const PSet& that) const
 //{
-//  if(this->hb_abs && that.lb_abs)
-//    return ((this->hoff) < (that.loff - 1));
-//  if(this->hb_abs)
-//    return true;
-//  if(that.lb_abs)
-//    return false;
-//
-//  if( ((float)this->hnum/(float)this->hden) <
-//      ((float)that.lnum/(float)that.lnum) )
-//    return true;
-//  if( ((float)this->hnum/(float)this->hden) >
-//      ((float)that.lnum/(float)that.lnum) )
-//    return false;
-//  if(this->hoff < (that.loff - 1))
-//    return true;
-//
-//  return false;
+//  return (this->hb_ < that.lb_);
 //}
-//
-////=======================================================================================
-////consider, if no bound is Abs, return the offset from the biggest
-//bool PSet::operator<(const PSet& that) const
-//{
-//  if(this->lb_abs && that.lb_abs)
-//    return ((this->loff) < (that.loff));
-//  if(this->lb_abs)
-//    return true;
-//  if(that.lb_abs)
-//    return false;
-//
-//  if( ((float)this->lnum/(float)this->lden) <
-//      ((float)that.lnum/(float)that.lnum) )
-//    return true;
-//  if( ((float)this->lnum/(float)this->lden) >
-//      ((float)that.lnum/(float)that.lnum) )
-//    return false;
-//  if(this->loff < that.loff)
-//    return true;
-//
-//  return false;
-//}
-//
-////=======================================================================================
-//bool PSet::operator>(const PSet& that) const
-//{
-//  if(this->hb_abs && that.hb_abs)
-//    return ((this->hoff) > (that.hoff));
-//  if(this->hb_abs)
-//    return false;
-//  if(that.hb_abs)
-//    return true;
-//
-//  if( ((float)this->hnum/(float)this->hden) >
-//      ((float)that.hnum/(float)that.hnum) )
-//    return true;
-//  if( ((float)this->hnum/(float)this->hden) <
-//      ((float)that.hnum/(float)that.hnum) )
-//    return false;
-//  if(this->hoff > that.hoff)
-//    return true;
-//
-//  return false;
-//}
-//
-////=======================================================================================
-//bool PSet::copy(const PSet& that)
-//{
-//  bool modified = this->empty_range != that.empty_range ||
-//                  this->lb_abs != that.lb_abs ||
-//                  this->lnum != that.lnum ||
-//                  this->lden != that.lden ||
-//                  this->loff != that.loff ||
-//                  this->hb_abs != that.hb_abs ||
-//                  this->hnum != that.hnum ||
-//                  this->hden != that.hden ||
-//                  this->hoff != that.hoff;
-//
-//  this->empty_range = that.empty_range;
-//
-//  this->lb_abs = that.lb_abs;
-//  this->lnum = that.lnum;
-//  this->lden = that.lden;
-//  this->loff = that.loff;
-//
-//  this->hb_abs = that.hb_abs;
-//  this->hnum = that.hnum;
-//  this->hden = that.hden;
-//  this->hoff = that.hoff;
-//
-//  return modified;
-//}
-//
-//
-//// ************************
-//// *** NodeFact methods ***
-//// ************************
-//
-////=======================================================================================
-//string PSet::str(string indent) const
-//{
-//  ostringstream outs;
-//  outs << "[";
-//
-//  // empty set
-//  if(this->empty_range)
-//    outs << "empty";
-//
-//  // one element in set
-//  else if(lb_abs == hb_abs && lnum == hnum && lden == hden && loff == hoff)
-//  {
-//    if(this->lb_abs)
-//      outs << loff;
-//    else
-//      outs << lnum << "/" << lden << "*size+" << loff;
-//  }
-//
-//  // continuous set
-//  else
-//  {
-//    if(this->lb_abs)
-//      outs << loff << "..";
-//    else
-//      outs << lnum << "/" << lden << "*size+" << loff << "..";
-//    if(this->hb_abs)
-//      outs << hoff;
-//    else
-//      outs << hnum << "/" << hden << "*size+" << hoff;
-//  }
-//
-//  outs << "] ";
-//  return Dbg::escape(outs.str());
-//}
-//
-////=======================================================================================
-//string PSet::str(string indent)
-//{
-//  ostringstream outs;
-//  outs << "[";
-//
-//  // empty set
-//  if(this->isEmpty())
-//    outs << "empty";
-//
-//  // one element in set
-//  else if(lb_abs == hb_abs && lnum == hnum && lden == hden && loff == hoff)
-//  {
-//    if(this->lb_abs)
-//      outs << loff;
-//    else
-//      outs << lnum << "/" << lden << "*size+" << loff;
-//  }
-//
-//  // continuous set
-//  else
-//  {
-//    if(this->lb_abs)
-//      outs << loff << "..";
-//    else
-//      outs << lnum << "/" << lden << "*size+" << loff << "..";
-//    if(this->hb_abs)
-//      outs << hoff;
-//    else
-//      outs << hnum << "/" << hden << "*size+" << hoff;
-//  }
-//
-//  outs << "] ";
-//  return Dbg::escape(outs.str());
-//}
-//
-////=======================================================================================
-//// returns a copy of this node fact
-//NodeFact* PSet::copy() const
-//{
-//        return new PSet();
-//}
-//
+#endif
 
+//=======================================================================================
+bool PSet::operator==(const PSet& that) const
+{
+  if(this->empty_ == true && that.empty_ == true)
+    return true;
+  return (this->empty_ == that.empty_
+          && this->lb_ == that.lb_
+          && this->hb_ == that.hb_);
+}
 
+//=======================================================================================
+bool PSet::operator!=(const PSet& that) const
+{
+  return !(*this == that);
+}
+
+//=======================================================================================
+//consider, if no bound is Abs, return the offset from the biggest
+bool PSet::operator<(const PSet& that) const
+{
+  return lb_ < that.lb_;
+}
+
+//=======================================================================================
+bool PSet::operator>(const PSet& that) const
+{
+  return hb_ > that.hb_;
+}
+
+//=======================================================================================
+bool PSet::operator<=(const PSet& that) const
+{
+  return (*this < that || *this == that);
+}
+
+//=======================================================================================
+bool PSet::operator>=(const PSet& that) const
+{
+  return (*this > that || *this == that);
+}
+
+//=======================================================================================
+bool PSet::operator=(const PSet& that)
+{
+  return this->copy(that);
+}
+
+//=======================================================================================
+bool PSet::copy(const PSet& that)
+{
+  bool modified = *this != that;
+  this->empty_ = that.empty_;
+  this->lb_ = that.lb_;
+  this->hb_ = that.hb_;
+  return modified;
+}
+
+// ************************
+// *** NodeFact methods ***
+// ************************
+//=======================================================================================
+string PSet::str(string indent) const
+{
+  ostringstream outs;
+  outs << "[";
+
+  // empty set
+  if(this->empty_)
+    outs << "empty";
+
+  // one element in set
+  else if(lb_ == hb_)
+  {
+    if(this->lb_.abs)
+      outs << lb_.o;
+    else
+      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
+  }
+
+  // continuous set
+  else
+  {
+    if(this->lb_.abs)
+      outs << lb_.o << "..";
+    else
+      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
+    if(this->hb_.abs)
+      outs << hb_.o;
+    else
+      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
+  }
+
+  outs << "] ";
+  return Dbg::escape(outs.str());
+}
+
+//=======================================================================================
+string PSet::str(string indent)
+{
+  ostringstream outs;
+  outs << "[";
+
+  // empty set
+  if(this->isEmpty())
+    outs << "empty";
+
+  // one element in set
+  else if(lb_ == hb_)
+  {
+    if(this->lb_.abs)
+      outs << lb_.o;
+    else
+      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
+  }
+
+  // continuous set
+  else
+  {
+    if(this->lb_.abs)
+      outs << lb_.o << "..";
+    else
+      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
+    if(this->hb_.abs)
+      outs << hb_.o;
+    else
+      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
+  }
+
+  outs << "] ";
+  return Dbg::escape(outs.str());
+}
+
+//=======================================================================================
+// returns a copy of this node fact
+// TODO verify usage of this function ....
+NodeFact* PSet::copy() const
+{
+  return new PSet(*this);
+}

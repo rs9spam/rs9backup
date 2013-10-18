@@ -2,30 +2,29 @@
 // inter_procedural control flow graphs
 // Extended to build an mpi_cfg
 
-#include "rose.h"
-#include "mpiCFG.h"
-#include <string>
-#include <list>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <map>
-#include <ctype.h>
-#include <boost/algorithm/string.hpp>
-
-#include "genericDataflowCommon.h"
-#include "VirtualCFGIterator.h"
-#include "cfgUtils.h"
-#include "CallGraphTraverse.h"
-#include "analysisCommon.h"
-#include "analysis.h"
-#include "dataflow.h"
+//#include <string>
+//#include <list>
+//#include <sstream>
+//#include <iostream>
+//#include <fstream>
+//#include <algorithm>
+//#include <map>
+//#include <ctype.h>
+//#include <boost/algorithm/string.hpp>
+//#include "genericDataflowCommon.h"
+//#include "VirtualCFGIterator.h"
+//#include "cfgUtils.h"
+//#include "CallGraphTraverse.h"
+//#include "analysisCommon.h"
+//#include "analysis.h"
+//#include "dataflow.h"
 //#include "latticeFull.h"
 //#include "printAnalysisStates.h"
+#include "rose.h"
+#include "mpiCFG.h"
 #include "constantPropagationAnalysis.h"
 #include "liveDeadVarAnalysis.h"
-//#include "rankAnalysis.h"
+#include "rankAnalysis.h"
 
 using namespace std;
 
@@ -67,12 +66,15 @@ int main(int argc, char *argv[])
   ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
   cpInter.runAnalysis();
 
-//  RankAnalysis rankA(project);
-////  rankA.setProject(project);
-////  ROSE_ASSERT (rankA.setSizeAndRank(project));
-////  rankA.setRankAnalysis(&rankA); // don't do that!
-//  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
-//  rankInter.runAnalysis();
+  std::cerr << "\n## Before Rank Analysis";
+  RankAnalysis rankA(project);
+//  rankA.setProject(project);
+//  ROSE_ASSERT (rankA.setSizeAndRank(project));
+//  rankA.setRankAnalysis(&rankA); // don't do that!
+  std::cerr << "\n## Before Rank Analysis Inter initialisation";
+  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
+  std::cerr << "\n## Before Rank Analysis RUN ...";
+  rankInter.runAnalysis();
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
