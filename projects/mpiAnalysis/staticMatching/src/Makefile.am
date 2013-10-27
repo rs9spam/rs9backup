@@ -41,7 +41,7 @@ INCLUDES = $(ROSE_INCLUDES) \
 
 bin_PROGRAMS = mpiAnalysis
 #mpiAnalysis_SOURCES = mpiAnalysis.cpp virtualMPICFG.h virtualMPICFG.cpp staticMPICFG.h staticMPICFG.cpp mpiCFG.h mpiCFG.cpp
-mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h constantPropagationAnalysis.cpp constantPropagationAnalysis.h rankAnalysis.cpp rankAnalysis.h pSet.cpp pSet.h
+mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h constantPropagationAnalysis.cpp constantPropagationAnalysis.h rankAnalysis.cpp rankAnalysis.h pSet.cpp pSet.h RankLattice.cpp RankLattice.h
 #liveDeadA_SOURCES = liveDeadA.C
 
 

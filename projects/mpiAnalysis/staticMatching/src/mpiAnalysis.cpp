@@ -36,6 +36,9 @@ int main(int argc, char *argv[])
   SgProject* project = frontend(argc,argv);
   ROSE_ASSERT (project != NULL);
 
+//  TimingPerformance timer ("ROSE:");
+//  generateDOT( *project);
+
   /////////////////////////////////////////////////////////////////////////////////////////////
   //Perform inter_procedural constant propagation in order to gain additional information
   //src/midend/programAnalysis/gernericDataflow/analysis/analysisCommne.h
@@ -85,7 +88,7 @@ int main(int argc, char *argv[])
 //  ROSE_ASSERT (main_def != NULL);
 
   //Initializes the mpi_cfg class
-  MpiAnalysis::MPICFG mpi_cfg(project, &cpA);
+  MpiAnalysis::MPICFG mpi_cfg(project, &cpA, &rankA);
 //  MpiAnalysis::MPICFG mpi_cfg(main_def, &cpA);
   //Builds the full mpi_cfg and performs all possible pruning steps.
   mpi_cfg.build();
@@ -98,5 +101,7 @@ int main(int argc, char *argv[])
   mpi_cfg.mpiCommToDot();
   std::cerr << "\n## Dumped out MPI communication as Dot graph\n";
   // Call functions to refine the graph.......
+//  TimingPerformance timer ("ROSE: end");
+
   return 0;
 }

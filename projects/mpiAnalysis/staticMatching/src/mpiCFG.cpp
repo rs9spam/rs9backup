@@ -191,8 +191,11 @@ void MPICFG::buildMPISend()
 {
   BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
-      if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
-        mpi_send_nodes_[p.first] = p.second;
+//      if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
+      if( ((p.first).isInteresting())  && isMPISend((p.first).getNode())) {
+        //mpi_send_nodes_[p.first] = p.second;
+        pair_n new_p = pair<VirtualCFG::CFGNode, SgGraphNode*>(p.first,p.second);
+        mpi_send_nodes_.insert(new_p);
         //TODO: remove debug output
 //        std::cerr << endl
 //                  << "SIZE MPI SEND NODES: "
@@ -222,7 +225,8 @@ void MPICFG::buildMPIRecv()
 {
   BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
-      if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
+      if( ((p.first).isInteresting()) && isMPIRecv((p.first).getNode())) {
         mpi_recv_nodes_[p.first] = p.second;
         //TODO: remove debug output
 //        std::cerr << endl

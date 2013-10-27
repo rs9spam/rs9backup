@@ -34,22 +34,38 @@ PSet::PSet()
 }
 
 //=======================================================================================
-bool PSet::isEmpty() { return empty_; }
+PSet::PSet(bool empty, int value)
+{
+  this->empty_ = empty;
+  lb_ = bound(true, 1, 1, value);
+  hb_ = bound(true, 1, 1, value);
+}
 
 //=======================================================================================
-bool PSet::isLbAbs() { return lb_.abs; }
+PSet::PSet(const PSet& that)
+{
+  this->empty_ = that.empty_;
+  this->lb_ = that.lb_;
+  this->hb_ = that.hb_;
+}
 
 //=======================================================================================
-bool PSet::isHbAbs() { return hb_.abs; }
+bool PSet::isEmpty() const { return empty_; }
 
 //=======================================================================================
-bool PSet::isAbsProcNumber()
+bool PSet::isLbAbs() const { return lb_.abs; }
+
+//=======================================================================================
+bool PSet::isHbAbs() const { return hb_.abs; }
+
+//=======================================================================================
+bool PSet::isAbsProcNumber() const
 {
   return ((lb_.abs && hb_.abs) || empty_) ? true : false;
 }
 
 //=======================================================================================
-int PSet::getAbsNumProc()
+int PSet::getAbsNumProc() const
 {
   if(empty_)
     return 0;
@@ -59,7 +75,7 @@ int PSet::getAbsNumProc()
 }
 
 //=======================================================================================
-bool PSet::isMinBound()
+bool PSet::isMinBound() const
 {
   if(empty_)
     return false;
@@ -73,7 +89,7 @@ bool PSet::isMinBound()
 }
 
 //=======================================================================================
-bool PSet::isMaxBound()
+bool PSet::isMaxBound() const
 {
   if(empty_)
     return false;
@@ -85,7 +101,7 @@ bool PSet::isMaxBound()
 
 //=======================================================================================
 //Returns true if 100% sure about the decision
-bool PSet::contains(bound b)
+bool PSet::contains(const bound& b) const
 {
   return (b <= hb_ && b >= lb_);
 }
@@ -105,37 +121,54 @@ bool PSet::interleavesOrTouches(const PSet& that) const
 }
 
 //=======================================================================================
-PSet PSet::combineWith(const PSet& p) const
+PSet PSet::combineWith(const PSet& that) const
 {
   if(this->empty_)
-    return p;
-  if(p.empty_)
+    return that;
+  if(that.empty_)
     return *this;
-  if(!this->interleavesOrTouches(p))
+  if(!(this->interleavesOrTouches(that)))
     return *this;
   bool empty = false;
   bound lb, hb;
 
-  if(*this < p)
-    lb = this->getLBound();
-  else
-    lb = p.getLBound();
-
-  if(*this > p)
-    hb = this->getHBound();
-  else
-    hb = p.getHBound();
+  lb = (*this < that) ? this->getLBound() : that.getLBound();
+  hb = (*this > that) ? this->getHBound() : that.getHBound();
 
   return PSet(empty, lb, hb);
 }
 
 //=======================================================================================
-PSet PSet::intersectWith(const PSet& p) const
+PSet PSet::intersectWith(const PSet& that) const
 {
-  //TODO:
-  return PSet();
+  if(this->empty_ || that.empty_)
+    return PSet();
+  bound lb = (this->lb_ < that.lb_) ? that.lb_ : this->lb_;
+  bound hb = (this->hb_ < that.hb_) ? this->hb_ : that.hb_;
+
+  return (lb <= hb) ? PSet(false, lb, hb) : PSet();
 }
 
+//=======================================================================================
+std::vector<PSet> PSet::remove(const PSet& that) const
+{
+  std::vector<PSet> ps_vec;
+  if(this->empty_ || that.empty_ || this->lb_ > that.hb_ || this->hb_ < that.lb_)
+    ps_vec.push_back(PSet(*this));
+  else if(this->lb_ >= that.lb_ && this->hb_ <= that.hb_)
+    ps_vec.push_back(PSet());
+  else
+  {
+    if(this->lb_ < that.lb_)
+      ps_vec.push_back(PSet(false, this->lb_, that.lb_-1 ));
+    if(this->hb_ > that.hb_)
+      ps_vec.push_back(PSet(false, that.hb_+1, this->hb_));
+  }
+
+  return ps_vec;
+}
+
+#if 0
 //=======================================================================================
 int PSet::getLnum() const { return lb_.n; }
 
@@ -153,6 +186,7 @@ int PSet::getLoff() const { return lb_.o; }
 
 //=======================================================================================
 int PSet::getHoff() const { return hb_.o; }
+#endif
 
 //=======================================================================================
 bound PSet::getLBound() const { return lb_; }
@@ -160,6 +194,7 @@ bound PSet::getLBound() const { return lb_; }
 //=======================================================================================
 bound PSet::getHBound() const { return hb_; }
 
+#if 0
 //=======================================================================================
 void PSet::setLnum( const int& lnum ) { this->lb_.n = lnum; }
 
@@ -177,6 +212,7 @@ void PSet::setLoff( const int& loff ) { this->lb_.o = loff; }
 
 //=======================================================================================
 void PSet::setHoff( const int& hoff ) { this->hb_.o = hoff; }
+#endif
 
 //=======================================================================================
 void PSet::setLow(bool abs, int num, int den, int off)
@@ -320,7 +356,7 @@ bool PSet::copy(const PSet& that)
 // *** NodeFact methods ***
 // ************************
 //=======================================================================================
-string PSet::str(string indent) const
+string PSet::toString() const
 {
   ostringstream outs;
   outs << "[";
@@ -331,25 +367,28 @@ string PSet::str(string indent) const
 
   // one element in set
   else if(lb_ == hb_)
-  {
-    if(this->lb_.abs)
-      outs << lb_.o;
-    else
-      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
-  }
+    outs << lb_.toStr();
+//  {
+//    if(this->lb_.abs)
+//      outs << lb_.o;
+//    else
+//      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
+//  }
 
   // continuous set
   else
-  {
-    if(this->lb_.abs)
-      outs << lb_.o << "..";
-    else
-      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
-    if(this->hb_.abs)
-      outs << hb_.o;
-    else
-      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
-  }
+    outs << lb_.toStr() << ".." << hb_.toStr();
+//  {
+//    if(this->lb_.abs)
+//      outs << lb_.o << "..";
+//    else
+//      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
+//    if(this->hb_.abs)
+//      outs << hb_.o;
+//    else
+//      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
+//  }
+
 
   outs << "] ";
   return Dbg::escape(outs.str());
@@ -359,36 +398,36 @@ string PSet::str(string indent) const
 string PSet::str(string indent)
 {
   ostringstream outs;
-  outs << "[";
-
-  // empty set
-  if(this->isEmpty())
-    outs << "empty";
-
-  // one element in set
-  else if(lb_ == hb_)
-  {
-    if(this->lb_.abs)
-      outs << lb_.o;
-    else
-      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
-  }
-
-  // continuous set
-  else
-  {
-    if(this->lb_.abs)
-      outs << lb_.o << "..";
-    else
-      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
-    if(this->hb_.abs)
-      outs << hb_.o;
-    else
-      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
-  }
-
-  outs << "] ";
+  outs << indent;
+  outs << this->toString();
   return Dbg::escape(outs.str());
+//  // empty set
+//  if(this->isEmpty())
+//    outs << "empty";
+//
+//  // one element in set
+//  else if(lb_ == hb_)
+//  {
+//    if(this->lb_.abs)
+//      outs << lb_.o;
+//    else
+//      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o;
+//  }
+//
+//  // continuous set
+//  else
+//  {
+//    if(this->lb_.abs)
+//      outs << lb_.o << "..";
+//    else
+//      outs << lb_.n << "/" << lb_.d << "*size+" << lb_.o << "..";
+//    if(this->hb_.abs)
+//      outs << hb_.o;
+//    else
+//      outs << hb_.n << "/" << hb_.d << "*size+" << hb_.o;
+//  }
+//
+//  outs << "] ";
 }
 
 //=======================================================================================
