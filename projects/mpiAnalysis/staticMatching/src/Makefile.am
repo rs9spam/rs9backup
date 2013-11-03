@@ -38,10 +38,9 @@ INCLUDES = $(ROSE_INCLUDES) \
 #\-I$(DFA_ROOT)/generalDataFlowAnalysisTests
 
 
-
-bin_PROGRAMS = mpiAnalysis
-#mpiAnalysis_SOURCES = mpiAnalysis.cpp virtualMPICFG.h virtualMPICFG.cpp staticMPICFG.h staticMPICFG.cpp mpiCFG.h mpiCFG.cpp
-mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiCFG.cpp mpiCFG.h constantPropagationAnalysis.cpp constantPropagationAnalysis.h rankAnalysis.cpp rankAnalysis.h pSet.cpp pSet.h RankLattice.cpp RankLattice.h
+bin_PROGRAMS = mpiAnalysis rankAnalysisTest
+mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h rankAnalysis/pSet.cpp rankAnalysis/pSet.h rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h
+rankAnalysisTest_SOURCES = rankAnalysisTest.cpp rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h rankAnalysis/pSet.cpp rankAnalysis/pSet.h rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h
 #liveDeadA_SOURCES = liveDeadA.C
 
 

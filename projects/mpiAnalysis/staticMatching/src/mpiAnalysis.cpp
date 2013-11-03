@@ -21,14 +21,12 @@
 //#include "latticeFull.h"
 //#include "printAnalysisStates.h"
 #include "rose.h"
-#include "mpiCFG.h"
-#include "constantPropagationAnalysis.h"
+#include "mpiCFG/mpiCFG.h"
+#include "constPropAnalysis/constantPropagationAnalysis.h"
 #include "liveDeadVarAnalysis.h"
-#include "rankAnalysis.h"
+#include "rankAnalysis/rankAnalysis.h"
 
 using namespace std;
-
-int numFails = 0, numPass = 0;
 
 int main(int argc, char *argv[])
 {
@@ -47,13 +45,11 @@ int main(int argc, char *argv[])
 
   std::cerr << "\n## Init Analysis";
   initAnalysis(project);
+  mpiUtils::initMPIUtils(project);
   Dbg::init("Live dead variable analysis Test", ".", "index.html");
   liveDeadAnalysisDebugLevel = 0;
   analysisDebugLevel = 0;
-  std::cerr << "\n## LiveDeadVars Analysis";
-  LiveDeadVarsAnalysis ldva(project);
-  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
-  ciipd_ldva.runAnalysis();
+  rrankAnalysisDebugLevel = 2;
 
   std::cerr << "\n## Call Graph Builder";
   // prepare call graph
@@ -61,13 +57,6 @@ int main(int argc, char *argv[])
   cgb.buildCallGraph();
   SgIncidenceDirectedGraph* graph = cgb.getGraph();
 
-  std::cerr << "\n## Constant Propagation Analysis";
-  //use constant propagation within the
-  //context insensitive inter-procedural data-flow driver
-  ConstantPropagationAnalysis cpA(&ldva);
-//  ConstantPropagationAnalysis cpA(NULL);
-  ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
-  cpInter.runAnalysis();
 
   std::cerr << "\n## Before Rank Analysis";
   RankAnalysis rankA(project);
@@ -78,8 +67,23 @@ int main(int argc, char *argv[])
   ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
   std::cerr << "\n## Before Rank Analysis RUN ...";
   rankInter.runAnalysis();
+  //#####################################################################################
+  const std::vector<DataflowNode> radfn = rankA.getDFNodes();
 
-  /////////////////////////////////////////////////////////////////////////////////////////////
+  std::cerr << "\n## LiveDeadVars Analysis";
+  LiveDeadVarsAnalysis ldva(project);
+  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+  ciipd_ldva.runAnalysis();
+
+  std::cerr << "\n## Constant Propagation Analysis";
+  //use constant propagation within the
+  //context insensitive inter-procedural data-flow driver
+  ConstantPropagationAnalysis cpA(&ldva);
+//  ConstantPropagationAnalysis cpA(NULL);
+  ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
+  cpInter.runAnalysis();
+
+  ///////////////////////////////////////////////////////////////////////////////////////
   std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
   //Find main function
 //  SgFunctionDeclaration* main_def_decl = SageInterface::findMain(project);
@@ -88,7 +92,14 @@ int main(int argc, char *argv[])
 //  ROSE_ASSERT (main_def != NULL);
 
   //Initializes the mpi_cfg class
-  MpiAnalysis::MPICFG mpi_cfg(project, &cpA, &rankA);
+//  MpiAnalysis::MPICFG mpi_cfg(project, &cpA, &rankA);
+
+
+
+
+
+
+  MpiAnalysis::MPICFG mpi_cfg(project, NULL, &rankA);
 //  MpiAnalysis::MPICFG mpi_cfg(main_def, &cpA);
   //Builds the full mpi_cfg and performs all possible pruning steps.
   mpi_cfg.build();
@@ -96,7 +107,9 @@ int main(int argc, char *argv[])
 
   std::cerr << "\n## Successfully created MPI_ICFG";
   // Dump out the full MPI_CFG
+  mpi_cfg.setRankInfo(radfn);
   mpi_cfg.mpicfgToDot();
+
   std::cerr << "\n## Dumped out the full MPI_CFG as";
   mpi_cfg.mpiCommToDot();
   std::cerr << "\n## Dumped out MPI communication as Dot graph\n";

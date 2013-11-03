@@ -10,11 +10,7 @@
 
 #include "rose.h"
 #include "latticeFull.h"
-#include "pSet.h"
-
-#if 0
-extern int rankAnalysisDebugLevel;
-#endif
+#include "rankAnalysis/pSet.h"
 
 //! The process set container holds all process sets of a node plus additional
 //! information about the process set.
@@ -302,6 +298,10 @@ public:
   std::string str(std::string indent="");
   //!
   std::string toString() const;
+  //!
+  string psetsToString() const;
+  //!
+  string toStringForDebugging() const;
   //!
   string procSetsStr(const std::vector<PSet>& ps) const;
   //!

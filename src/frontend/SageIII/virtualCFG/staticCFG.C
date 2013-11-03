@@ -57,8 +57,11 @@ void CFG::buildFullCFG()
 
     if (SgProject* project = isSgProject(start_))
     {
-        Rose_STL_Container<SgNode*> functions = NodeQuery::querySubTree(project, V_SgFunctionDefinition);
-        for (Rose_STL_Container<SgNode*>::const_iterator i = functions.begin(); i != functions.end(); ++i)
+        Rose_STL_Container<SgNode*> functions =
+            NodeQuery::querySubTree(project, V_SgFunctionDefinition);
+        for (Rose_STL_Container<SgNode*>::const_iterator i = functions.begin();
+             i != functions.end();
+             ++i)
         {
             SgFunctionDefinition* proc = isSgFunctionDefinition(*i);
             if (proc)
@@ -299,60 +302,24 @@ void CFG::processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>&
         return;
     explored.insert(n);
 
-//    printNodePlusEdges(o, n, debug);
     printNodePlusEdges(o, n);
 
     std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(n);
-//    if(out_edges.size() >= 1)
-//    {
-//      std::cerr << "looks like MPI Send " << out_edges.size() << "\n";
-//    foreach (SgDirectedGraphEdge* e, out_edges)
-//        processNodes(o, e->get_to(), explored, true);
-//
-//          std::cerr << "passed all send out edges " << out_edges.size() << "\n";
-//    }
-//    else
-//    {
-      foreach (SgDirectedGraphEdge* e, out_edges)
+    foreach (SgDirectedGraphEdge* e, out_edges)
               processNodes(o, e->get_to(), explored);
-//    }
-
 
     std::set<SgDirectedGraphEdge*> in_edges = graph_->computeEdgeSetIn(n);
-//    if(in_edges.size() >=1)
-//    {
-//          std::cerr << "looks like MPI Recv " << in_edges.size() << "\n";
-//    foreach (SgDirectedGraphEdge* e, in_edges)
-//        processNodes(o, e->get_from(), explored, true);
-//
-//          std::cerr << "passed all recv in edges " << in_edges.size() << "\n";
-//    }
-//    else
-//    {
-      foreach (SgDirectedGraphEdge* e, in_edges)
+    foreach (SgDirectedGraphEdge* e, in_edges)
               processNodes(o, e->get_from(), explored);
-//    }
 }
 
-//void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)
-//{
-//  printNodePlusEdges(o,node,false);
-//}
-
-void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)//, bool debug)
+void CFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)
 {
-//    debug? (std::cerr << "PrintNode\n") : debug=false;
     printNode(o, node);
-//    debug? (std::cerr << "PrintNode worked !!!\n") : debug=false;
 
     std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(node);
-//    debug? (std::cerr << "Out_edges size: " << out_edges.size()) : debug = false;
     foreach (SgDirectedGraphEdge* e, out_edges)
-    {
-//      debug? (std::cerr << "PrintEdge\n") : debug=false;
         printEdge(o, e, false);
-//        debug? (std::cerr << "PrintEdge worked !!!\n") : debug=false;
-    }
 
 #ifdef DEBUG
     std::set<SgDirectedGraphEdge*> in_edges = graph_->computeEdgeSetIn(node);
@@ -399,7 +366,6 @@ void CFG::printEdge(std::ostream & o, SgDirectedGraphEdge* edge, bool isInEdge)
         ROSE_ASSERT(false);
 }
 
-
 std::vector<SgDirectedGraphEdge*> outEdges(SgGraphNode* node)
 {
     CFGNodeAttribute* info = dynamic_cast<CFGNodeAttribute*>(node->getAttribute("info"));
@@ -422,6 +388,5 @@ int getIndex(SgGraphNode* node)
     ROSE_ASSERT(info);
     return info->getIndex();
 }
-
 
 } // end of namespace StaticCFG

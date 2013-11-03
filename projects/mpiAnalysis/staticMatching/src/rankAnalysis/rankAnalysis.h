@@ -6,15 +6,18 @@
 #include "rose.h"
 #include "dataflow.h"
 #include "latticeFull.h"
-#include "pSet.h"
-#include "RankLattice.h"
+#include "mpiUtils/mpiUtils.h"
+#include "rankAnalysis/pSet.h"
+#include "rankAnalysis/RankLattice.h"
+
+extern int rrankAnalysisDebugLevel;
 
 //=======================================================================================
 class RankAnalysis : public IntraFWDataflow
 {
 protected:
   int start_value_;    //!< Value to avoid Segmentation fault from InterDataflowAnalysis.
-                       //!< Seems to be required by the Lattice Constructor.
+                       //!< Seems to be required by the Lattice Constructor. ????????????
   SgProject* project_;    //!< SgProject in order to perform NodeQuery.
 
   varID rank_var_;    //!< The variable which contains the information about the Rank
@@ -82,17 +85,6 @@ public:
   bool onlyConstValues(const SgNode* node) const;
 
 //=======================================================================================
-  // beter move this functions to some mpiUtils.h file!!
-
-  //!
-  bool isMPIInit(const DataflowNode& n) const;
-  //!
-  bool isMPIInit(const SgNode* node) const;
-  //!
-  bool isMPICommRank(const SgNode* node) const;
-  //!
-  bool isMPICommSize(const SgNode* node) const;
-
 #if 0
   void setRankAnalysis(IntraProceduralDataflow* ra) { rank_analysis_ = ra; }
   bool setSizeAndRank(SgProject* project);
@@ -102,6 +94,8 @@ public:
                               NodeState& state,
                               const std::vector<Lattice*>& dfInfo);
 #endif
+  //!
+  std::vector<DataflowNode> getDFNodes() const;
 };
 
 #endif

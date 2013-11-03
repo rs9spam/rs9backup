@@ -2,7 +2,9 @@ using namespace std;
 
 #include "sage3basic.h"
 #include "CallGraph.h"
-#include "mpiCFG.h"
+#include "DataflowCFG.h"
+#include "mpiCFG/mpiCFG.h"
+#include "rankAnalysis/RankLattice.h"
 #include <boost/foreach.hpp>
 #include <vector>
 #include <set>
@@ -19,6 +21,7 @@ void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) 
 
 //===================================================================================
 void MPICFG::build(){
+  //TODO that is not true .... why should start_ be an mpi_project_ ....
   mpi_project_ = start_;
   // If the start node is an SgProject, build the CFG from main.
   if(isSgProject(start_)) {
@@ -34,9 +37,19 @@ void MPICFG::build(){
 }
 
 //===================================================================================
+void MPICFG::buildCFG()
+{
+  //CFG::buildFullCFG();
+
+  // Use buildFilteredCFG from MPICFG since the one from CFG pushes wrong CFG nodes
+  // to all_nodes node collection.
+  MPICFG::buildFilteredCFG();
+}
+
+//===================================================================================
 void MPICFG::buildMPIICFG()
 {
-  buildFullCFG();
+  buildCFG();
   buildMPISend();
   buildMPIRecv();
   buildFullMPIMatchSet();
@@ -69,6 +82,44 @@ void MPICFG::buildFullCFG()
 	start = start_->cfgForBeginning();
 
 	buildCFG(start, all_nodes_, explored, &classHierarchy);
+}
+
+//===================================================================================
+void MPICFG::buildFilteredCFG()
+{
+    all_nodes_.clear();
+    clearNodesAndEdges();
+
+    std::set<VirtualCFG::InterestingNode> explored;
+    std::map<VirtualCFG::InterestingNode, SgGraphNode*> all_nodes;
+
+    graph_ = new SgIncidenceDirectedGraph;
+
+    if (SgProject* project = isSgProject(start_))
+    {
+        Rose_STL_Container<SgNode*> functions =
+            NodeQuery::querySubTree(project, V_SgFunctionDefinition);
+        for (Rose_STL_Container<SgNode*>::const_iterator i = functions.begin();
+             i != functions.end();
+             ++i)
+        {
+            SgFunctionDefinition* proc = isSgFunctionDefinition(*i);
+            if (proc)
+            {
+                CFG::buildCFG<VirtualCFG::InterestingNode,
+                              VirtualCFG::InterestingEdge>
+                    (VirtualCFG::makeInterestingCfg(proc), all_nodes, explored);
+            }
+        }
+    }
+    else
+        CFG::buildCFG<VirtualCFG::InterestingNode, VirtualCFG::InterestingEdge>
+            (VirtualCFG::makeInterestingCfg(start_), all_nodes, explored);
+
+    typedef std::pair<VirtualCFG::InterestingNode, SgGraphNode*> pair_t;
+    BOOST_FOREACH (const pair_t& p, all_nodes)
+        all_nodes_[VirtualCFG::CFGNode(p.first.getNode(),
+                                       p.first.getIndex())] = p.second;
 }
 
 //===================================================================================
@@ -139,13 +190,6 @@ void MPICFG::buildCFG(CFGNode n,
           CallTargetSet::getDefinitionsForExpression(
               isSgExpression(sgnode), classHierarchy, defs);
           if (defs.size() == 0) {
-//            std::cerr << sgnode->get_file_info()->get_filenameString()
-//                      << ":"
-//                      << sgnode->get_file_info()->get_line()
-//                      << " warning: CallGraph found no definition(s) for "
-//                      << sgnode->class_name()
-//                      << ". Skipping interprocedural behavior."
-//                      << std::endl;
             outEdges = n.outEdges();
           } else {
             BOOST_FOREACH(SgFunctionDefinition* def, defs) {
@@ -193,6 +237,7 @@ void MPICFG::buildMPISend()
     if(isSgFunctionCallExp((p.first).getNode())) {
 //      if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
       if( ((p.first).isInteresting())  && isMPISend((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 0)  && isMPISend((p.first).getNode())) {
         //mpi_send_nodes_[p.first] = p.second;
         pair_n new_p = pair<VirtualCFG::CFGNode, SgGraphNode*>(p.first,p.second);
         mpi_send_nodes_.insert(new_p);
@@ -227,6 +272,7 @@ void MPICFG::buildMPIRecv()
     if(isSgFunctionCallExp((p.first).getNode())) {
 //      if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
       if( ((p.first).isInteresting()) && isMPIRecv((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 0) && isMPIRecv((p.first).getNode())) {
         mpi_recv_nodes_[p.first] = p.second;
         //TODO: remove debug output
 //        std::cerr << endl
@@ -860,7 +906,7 @@ bool MPICFG::hasConstValue(SgNode* node)
   return false;
 }
 
-//===================================================================================//:TODO
+//===================================================================================
 int MPICFG::getConstPropValue(SgNode* node)
 {
   ROSE_ASSERT(node != NULL);
@@ -884,6 +930,108 @@ int MPICFG::getConstPropValue(SgNode* node)
 }
 
 //===================================================================================
+bool MPICFG::hasRankInfo(SgGraphNode* node)
+{
+  CFGNode cfg_n = toCFGNode(node);
+  SgNode* n = cfg_n.getNode();
+  unsigned int idx = cfg_n.getIndex();
+  SgNode* n2;
+  unsigned int idx2;
+
+  for(std::vector<DataflowNode>::iterator it = ra_nodes_.begin();
+      it != ra_nodes_.end();
+      ++it)
+  {
+    n2 = it->getNode();
+    idx2 = it->getIndex();
+    if(n == n2 && idx == idx2)
+      return true;
+  }
+
+  return false;
+}
+
+
+//===================================================================================
+string MPICFG::getRankPSetString(SgGraphNode* node)
+{
+//  CFGNode n = toCFGNode(node);
+//
+//  //NodeState *state =  NodeState::getNodeState(node.getNode(), node.getIndex());
+//  DataflowNode dfn(n, defaultFilter);
+//  NodeState* state = NodeState::getNodeState(dfn, n.getIndex());
+  CFGNode cfg_n = toCFGNode(node);
+  SgNode* n = cfg_n.getNode();
+  unsigned int idx = cfg_n.getIndex();
+  SgNode* n2;
+  unsigned int idx2;
+  NodeState* state = NULL;
+
+  for(std::vector<DataflowNode>::iterator it = ra_nodes_.begin();
+      it != ra_nodes_.end();
+      ++it)
+  {
+    n2 = it->getNode();
+    idx2 = it->getIndex();
+    if(n == n2 && idx == idx2)
+    {
+      state = NodeState::getNodeState(*it, 0);
+      break;
+    }
+  }
+
+  if(state != NULL)
+  {
+    if(state->isInitialized(rank_analysis_))
+    {
+      std::vector<Lattice*> lv = state->getLatticeBelow(rank_analysis_);
+      if(lv.empty())
+        return "ERROR lattice vector == NULL!";
+      Lattice* lattice = *(lv.begin());
+      if(lattice == NULL)
+        return "ERROR lattice == NULL";
+      RankLattice* rank_lattice = dynamic_cast<RankLattice*>(lattice);
+      if(rank_lattice != NULL)
+      {
+        return rank_lattice->psetsToString();
+      }
+    }
+  }
+
+#if 0
+  if(state->isInitialized(rank_analysis_))
+  {
+    std::cerr << "#";
+    return " good ";
+  }
+#endif
+
+//  if(state->isInitialized(rank_analysis_))
+//  {
+//    std::vector<Lattice*> lv = state->getLatticeAbove(rank_analysis_);
+//    if(lv.empty())
+//      return "ERROR lattice vector == NULL!";
+//    Lattice* lattice = *(lv.begin());
+//    if(lattice == NULL)
+//      return "ERROR lattice == NULL";
+//    RankLattice* rank_lattice = dynamic_cast<RankLattice*>(lattice);
+////  RankLattice* lattice = dynamic_cast <RankLattice*>   (NodeState::getLatticeAbove(this->rank_analysis_, node, 0)[0]);
+////  LiveVarsLattice* lAb = dynamic_cast<LiveVarsLattice*>  (*(state.getLatticeAbove(ldva).begin()));
+////  if(lattice == NULL)
+////    return "ERROR_1";
+////
+////  RankLattice* ranklattice =
+////                       dynamic_cast <RankLattice*> (lattice->getVarLattice(varID(node)));
+//
+//    if(rank_lattice != NULL)
+//      return rank_lattice->toString();
+//  }
+//  std::cerr << "ERROR Rank Lattice == NULL! NODE: " << node.toString();
+  std::cerr << "_";
+  return "";
+}
+
+//===================================================================================
 const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
 {
   BOOST_FOREACH(pair_n p, all_nodes_) {
@@ -891,6 +1039,25 @@ const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
       return p.first;
   }
   return NULL;
+}
+
+//===================================================================================
+void MPICFG::setRankInfo(std::vector<DataflowNode> rn)
+{
+  this->ra_nodes_ = rn;
+}
+
+//===================================================================================
+void MPICFG::setRankInfo(RankAnalysis* ra)
+{
+  this->rank_analysis_ = ra;
+}
+
+//===================================================================================
+void MPICFG::setRankInfo(RankAnalysis* ra, std::vector<DataflowNode> rn)
+{
+  this->rank_analysis_ = ra;
+  this->ra_nodes_ = rn;
 }
 
 //===================================================================================
@@ -916,7 +1083,66 @@ void MPICFG::mpicfgToDot(const std::string& file_name)
   SgFunctionDefinition* main_def;
   ROSE_ASSERT (isSgFunctionDefinition(start_));
   main_def = (SgFunctionDefinition*)start_;
-  cfgToDot(main_def, file_name);
+//  cfgToDot(main_def, file_name);
+  std::ofstream ofile(file_name.c_str(), std::ios::out);
+  ofile << "digraph defaultName {\n";
+  std::set<SgGraphNode*> explored;
+  processNodes(ofile, cfgForBeginning(main_def), explored);
+  ofile << "}\n";
+}
+
+//===================================================================================
+void MPICFG::processNodes(std::ostream & o,
+                       SgGraphNode* n,
+                       std::set<SgGraphNode*>& explored)
+{
+    if (explored.count(n) > 0)
+        return;
+    explored.insert(n);
+
+    printNodePlusEdges(o, n);
+
+    std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(n);
+    BOOST_FOREACH (SgDirectedGraphEdge* e, out_edges)
+              processNodes(o, e->get_to(), explored);
+
+    std::set<SgDirectedGraphEdge*> in_edges = graph_->computeEdgeSetIn(n);
+    BOOST_FOREACH (SgDirectedGraphEdge* e, in_edges)
+              processNodes(o, e->get_from(), explored);
+}
+
+//===================================================================================
+void MPICFG::printNodePlusEdges(std::ostream & o, SgGraphNode* node)
+{
+    printNode(o, node);
+
+    std::set<SgDirectedGraphEdge*> out_edges = graph_->computeEdgeSetOut(node);
+    BOOST_FOREACH (SgDirectedGraphEdge* e, out_edges)
+        printEdge(o, e, false);
+}
+
+//===================================================================================
+void MPICFG::printNode(std::ostream & o, SgGraphNode* node)
+{
+    CFGNode n = toCFGNode(node);
+
+    std::string id = n.id();
+    std::string nodeColor = "black";
+
+    if (isSgStatement(n.getNode()))
+        nodeColor = "blue";
+    else if (isSgExpression(n.getNode()))
+        nodeColor = "green";
+    else if (isSgInitializedName(n.getNode()))
+        nodeColor = "red";
+
+    o << id;
+    o << " [label=\""  << escapeString(n.toString());
+    o << escapeString((hasRankInfo(node) ? "\n" : ""));
+    o << escapeString((hasRankInfo(node) ? getRankPSetString(node) : ""));
+    o << "\", color=\"" << nodeColor;
+    o << "\", style=\"" << (n.isInteresting()? "solid" : "dotted");
+    o << "\"];\n";
 }
 
 //===================================================================================

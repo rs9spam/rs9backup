@@ -12,7 +12,8 @@
 
 #include "latticeFull.h"
 #include "liveDeadVarAnalysis.h"
-#include "constantPropagationAnalysis.h"
+#include "constPropAnalysis/constantPropagationAnalysis.h"
+#include "rankAnalysis/rankAnalysis.h"
 
 #define MPI_NUM_SEND_EXP 6
 #define MPI_NUM_RECV_EXP 7
@@ -55,6 +56,8 @@ protected:
   //Required for constant propagation pruning
   IntraProceduralDataflow* const_prop_;
   IntraProceduralDataflow* rank_analysis_;
+  //TODO: This is just an auxiliary nodes vectore since I can't access the real nodes.
+  std::vector<DataflowNode> ra_nodes_;
 
   //pointer to the whole project
   SgNode* mpi_project_;
@@ -81,7 +84,7 @@ public:
   //! Valid node types are SgProject, SgStatement, SgExpression, SgInitializedName
   MPICFG(SgNode* node,
          IntraProceduralDataflow* const_prop = NULL,
-         IntraProceduralDataflow* rank_analysis = NULL,
+         RankAnalysis* rank_analysis = NULL,
          bool is_filtered = false)
     : CFG() { graph_ = NULL;
               mpi_project_ = NULL;
@@ -108,13 +111,13 @@ public:
   }
 
   //! Build CFG according to the 'is_filtered_' flag.
-  virtual void buildCFG(){
-    buildFullCFG();
-  }
+  virtual void buildCFG();
 
 protected:
   //! Build CFG for debugging.
   virtual void buildFullCFG();
+  //! Build nice CFG.
+  void buildFilteredCFG();
 
   //! Outer constructor calling construct.....
   void buildMPIICFG();
@@ -179,6 +182,10 @@ protected:
                     const VirtualCFG::CFGNode& y);
 
 public:
+  //!
+  void setRankInfo(std::vector<DataflowNode> rn);
+  void setRankInfo(RankAnalysis* ra);
+  void setRankInfo(RankAnalysis* ra, std::vector<DataflowNode> rn);
   //! Output the MPI ICFG to a DOT file and generates default file name.
   void mpicfgToDot();
 
@@ -190,6 +197,18 @@ public:
 
   //! Output the possible communications to a Dot graph.
   void mpiCommToDot(const std::string& file_name);
+
+  string getRankPSetString(SgGraphNode* node);
+
+  bool hasRankInfo(SgGraphNode* node);
+
+
+  ///////////////////////////////////////////////////////////////////////////////////////
+  // function override from CFG
+  void processNodes(std::ostream & o, SgGraphNode* n, std::set<SgGraphNode*>& explored);
+  void printNodePlusEdges(std::ostream & o, SgGraphNode* node);
+  void printNode(std::ostream & o, SgGraphNode* node);
+
 };
 
 //class MPIInfo

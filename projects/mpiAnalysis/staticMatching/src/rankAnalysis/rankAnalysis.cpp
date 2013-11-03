@@ -1,12 +1,9 @@
-#include "rankAnalysis.h"
+#include "rankAnalysis/rankAnalysis.h"
 
 #include <stdlib.h>
-#if 0
-#include "sage3basic.h"
-#include "sage3.h"
-#include "AST_FILE_IO.h"
-#include "rose.h"
-#endif
+
+int rrankAnalysisDebugLevel=1;
+
 // **********************************************************************
 //                     RankAnalysis
 // **********************************************************************
@@ -31,9 +28,7 @@ RankAnalysis::RankAnalysis(SgProject* project)
 //=======================================================================================
 bool RankAnalysis::InitRankAnalysis()
 {
-  bool ret_val = false;
-  ret_val = SetMPICommunicationInfo();
-  return ret_val;
+  return SetMPICommunicationInfo();
 }
 
 //=======================================================================================
@@ -130,7 +125,7 @@ void RankAnalysis::genInitState(const Function& func, const DataflowNode& n,
 //    std::cerr << "\nsetScopeStatement() true at Conditional node!";
   }
 
-  if(isMPIInit(n))
+  if(mpiUtils::isMPIInit(n))
   {
     bound lb = bound(true,1,1,0);
     bound hb = bound(false,1,1,-1);
@@ -148,13 +143,16 @@ void RankAnalysis::genInitState(const Function& func, const DataflowNode& n,
 bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
                             NodeState& state, const std::vector<Lattice*>& dfInfo)
 {
-  std::cerr << "\n                                TRANSFER";
+  if(rrankAnalysisDebugLevel >= 1)
+    std::cerr << "\n                                TRANSFER";
   RankLattice* lattice = dynamic_cast<RankLattice*>(*(dfInfo.begin()));
 
   if(lattice->isDepCondScope())
   {
-    std::cerr << "   IF\n";
-    std::cerr << lattice->str();
+    if(rrankAnalysisDebugLevel >= 1)
+      std::cerr << "   IF\n";
+    if(rrankAnalysisDebugLevel >= 2)
+      std::cerr << lattice->str();
     //find out bound
     bool modified = false;
     SgNode* node = n.getNode();
@@ -235,7 +233,7 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
       }
       else
       {
-        std::cerr << "/n/nERRORERROROEROROREROEROEOROEOROEROEOEOROEROER  1/n";
+        std::cerr << "/n/nERROR  1/n";
         true_sets = lattice->getPSets();
 
         if(isSgLocatedNode(node))
@@ -250,25 +248,28 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
           }
         }
         else
-          std::cerr << "/n/nERRORERROROEROROREROEROEOROEOROEROEOEOROEROER  2/n";
+          std::cerr << "/n/nERROR  2/n";
       }
       //return true if changes to the out_sets_vec_ were introduced
       //return false if no changes to the out_sets_vec_ happend
     }
-    std::cerr << lattice->str();
+    if(rrankAnalysisDebugLevel >= 2)
+      std::cerr << lattice->str();
     return modified;
   }
   else
   {
-#if 0
-    std::cerr << "          ELSE\n";
-    std::cerr << lattice->str();
-    bool mod = lattice->pushPSetToOutSet();
-    std::cerr << lattice->str();
-    return mod;
-#else
-    return lattice->pushPSetToOutSet();
-#endif
+    if(rrankAnalysisDebugLevel >= 1)
+      std::cerr << "          ELSE\n";
+    if(rrankAnalysisDebugLevel >= 3)
+    {
+      std::cerr << lattice->str();
+      bool mod = lattice->pushPSetToOutSet();
+      std::cerr << lattice->str();
+      return mod;
+    }
+    else
+      return lattice->pushPSetToOutSet();
   }
 }
 
@@ -372,46 +373,34 @@ bool RankAnalysis::onlyConstValues(const SgNode* node) const
 }
 
 // **********************************************************************
-//                     Rank utils stuff
+//                     Temp stuff
 // **********************************************************************
-//=======================================================================================
-bool RankAnalysis::isMPIInit(const DataflowNode& n) const
-{
-  return isMPIInit(n.getNode());
-}
 
-//=======================================================================================
-bool RankAnalysis::isMPIInit(const SgNode* node) const
+std::vector<DataflowNode> RankAnalysis::getDFNodes() const
 {
-  string name;
-  if( isSgFunctionRefExp(node)) {
-    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
-    if(name == "MPI_Init")
-      return true;
-  }
-  return false;
-}
+  std::vector<DataflowNode> nodes;
 
-//=======================================================================================
-bool RankAnalysis::isMPICommRank(const SgNode* node) const
-{
-  string name;
-  if( isSgFunctionRefExp(node)) {
-    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
-    if(name == "MPI_Comm_rank")
-      return true;
-  }
-  return false;
-}
+  SgFunctionDeclaration* main_def_decl = SageInterface::findMain(project_);
+  if(main_def_decl == NULL)
+   ROSE_ASSERT(!"\nCannot get nodes without main function");
+  SgFunctionDefinition* main_def = main_def_decl->get_definition();
+  if(main_def == NULL)
+   ROSE_ASSERT (!"Cannot get nodes for project without main function");
 
-//=======================================================================================
-bool RankAnalysis::isMPICommSize(const SgNode* node) const
-{
-  string name;
-  if( isSgFunctionRefExp(node)) {
-    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
-    if(name == "MPI_Comm_size")
-      return true;
+  DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(main_def, filter);
+  DataflowNode funcCFGEnd = cfgUtils::getFuncEndCFG(main_def, filter);
+
+  // iterate over all the nodes in this function
+  for(VirtualCFG::iterator it(funcCFGStart); it!=VirtualCFG::dataflow::end(); it++)
+  {
+    DataflowNode n = *it;
+    nodes.push_back(n);
+//    const vector<NodeState*> nodeStates = NodeState::getNodeStates(n);
+//    // Visit each CFG node
+//    for(vector<NodeState*>::const_iterator itS = nodeStates.begin();
+//        itS!=nodeStates.end();
+//        itS++)
+//      visit(func, n, *(*itS));
   }
-  return false;
+  return nodes;
 }

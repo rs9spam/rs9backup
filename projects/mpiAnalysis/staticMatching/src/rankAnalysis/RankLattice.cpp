@@ -5,7 +5,9 @@
  *      Author: stoero
  */
 
-#include "RankLattice.h"
+#include "rankAnalysis/RankLattice.h"
+
+extern int rrankAnalysisDebugLevel;
 
 // **********************************************************************
 //                      RankLattice
@@ -282,22 +284,26 @@ bool RankLattice::mergePSets(const RankLattice& lattice)
 bool RankLattice::mergePSets(const std::vector<PSet>& psets)
 {
   bool modified = false;
-//  std::cerr << "\nMERGE FUNCTION:  This: "
-//            << this->procSetsStr(psets)
-//            << "   That: "
-//            << this->procSetsStr(this->pset_cont_);
+  if(rrankAnalysisDebugLevel >= 2)
+    std::cerr << "\nMERGE FUNCTION:  This: "
+              << this->procSetsStr(this->pset_cont_)
+              << "   That: "
+              << this->procSetsStr(psets);
 
   std::vector<PSet>::const_iterator it;
 
   for(it = psets.begin(); it != psets.end(); ++it)
     modified = this->mergePSets(*it) || modified;
 
-//  std::cerr << "  TO: modified = ";
-//  if(modified)
-//    std::cerr << "true";
-//  else
-//    std::cerr << "false";
-//  std::cerr << "  That: " << this->procSetsStr(this->pset_cont_);
+  if(rrankAnalysisDebugLevel >= 2)
+  {
+    std::cerr << "  TO: modified = ";
+    if(modified)
+      std::cerr << "true";
+    else
+      std::cerr << "false";
+    std::cerr << "  Result: " << this->procSetsStr(this->pset_cont_);
+  }
 
   return modified;
 }
@@ -309,7 +315,15 @@ bool RankLattice::mergePSets(const PSet& p_set)
   bool covered = false;
 
   if(p_set.isEmpty())
-    return modified;
+    return false;
+
+  if(this->pset_cont_.size() == 1)
+    if(this->pset_cont_[0].isEmpty())
+    {
+      this->pset_cont_.pop_back();
+      this->pset_cont_.push_back(p_set);
+      return true;
+    }
 
   std::vector<PSet> u_set;
   PSet in_set = p_set;
@@ -335,6 +349,11 @@ bool RankLattice::mergePSets(const PSet& p_set)
         modified = true;
         covered = true;
       }
+      if(*it < in_set && !in_set.interleavesOrTouches(*it))
+      {
+        u_set.push_back(*it);
+        modified = true;
+      }
       if(in_set.interleavesOrTouches(*it))
       {
         in_set = in_set.combineWith(*it);
@@ -343,7 +362,10 @@ bool RankLattice::mergePSets(const PSet& p_set)
     }
   }
   if(!covered)
+  {
     u_set.push_back(in_set);
+    modified = true;
+  }
 
   this->pset_cont_.clear();
   for(it = u_set.begin(); it != u_set.end(); ++it)
@@ -696,6 +718,30 @@ string RankLattice::toString() const
        << "}\n out_psets_vec_SIZE: " << this->out_psets_vec_.size()
        <<"  :" << this->procSetsVecStr();
 
+  return outs.str();
+}
+
+//=======================================================================================
+string RankLattice::psetsToString() const
+{
+  ostringstream outs;
+  outs << (check_pred_ ? "ifStmt = true\n" : "")
+       << "PSets: " << procSetsStr(this->pset_cont_)
+       << (check_pred_ ? this->procSetsVecStr() : "");
+
+  return outs.str();
+}
+
+//=======================================================================================
+string RankLattice::toStringForDebugging() const
+{
+  ostringstream outs;
+  outs << "\nRankLattice: { "
+       << "check predecessor: " << (check_pred_?"true\n":"false\n")
+       << "  ProcSets: " << procSetsStr(this->pset_cont_)
+       << "  OUT PRoc Sets: " << procSetsStr(this->out_pset_cont_)
+       << "}\n out_psets_vec_SIZE: " << this->out_psets_vec_.size()
+       <<"  :" << this->procSetsVecStr();
   return outs.str();
 }
 
