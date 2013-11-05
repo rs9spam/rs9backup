@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
   std::cerr << "\n## Init Analysis";
   initAnalysis(project);
-  mpiUtils::initMPIUtils(project);
+//  mpiUtils::initMPIUtils(project);
   Dbg::init("Live dead variable analysis Test", ".", "index.html");
   liveDeadAnalysisDebugLevel = 0;
   analysisDebugLevel = 0;

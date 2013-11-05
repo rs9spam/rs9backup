@@ -7,6 +7,61 @@
 
 #include "mpiUtils.h"
 
+//=======================================================================================
+bool MpiUtils::isMPIInit(const DataflowNode& n)
+{
+  std::cerr << "DEBUG";
+  return isMPIInit(n.getNode());
+}
+
+//=======================================================================================
+bool MpiUtils::isMPIInit(const SgNode* node)
+{
+  string name;
+  if( isSgFunctionRefExp(node)) {
+    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
+    if(name == "MPI_Init")
+      return true;
+  }
+  return false;
+}
+
+//=======================================================================================
+bool MpiUtils::isMPICommRank(const SgNode* node)
+{
+  string name;
+  if( isSgFunctionRefExp(node)) {
+    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
+    if(name == "MPI_Comm_rank")
+      return true;
+  }
+  return false;
+}
+
+//=======================================================================================
+bool MpiUtils::isMPICommSize(const SgNode* node)
+{
+  string name;
+  if( isSgFunctionRefExp(node)) {
+    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
+    if(name == "MPI_Comm_size")
+      return true;
+  }
+  return false;
+}
+
+
+
+#if 0
+/*
+ * mpiUtils.cpp
+ *
+ *  Created on: Nov 1, 2013
+ *      Author: ro
+ */
+
+#include "mpiUtils.h"
+
 namespace mpiUtils
 {
 SgProject* project;
@@ -79,6 +134,6 @@ bool isMPICommSize(const SgNode* node)
 
 } /*end namespace mpiUtils*/
 
-
+#endif
 
 

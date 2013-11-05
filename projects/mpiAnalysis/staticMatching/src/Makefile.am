@@ -1,46 +1,31 @@
 include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
+include $(top_srcdir)/projects/mpiAnalysis/common.deb.libs
 
-SAF_SRC_ROOT   = $(top_srcdir)/src/midend/programAnalysis/genericDataflow/
-#DFA_ROOT = $(top_srcdir)/tests/roseTests/programAnalysisTests/
-
-# To keep compile commands tidy, please ONLY put required include flags here.
-XXX_INCLUDES = $(ROSE_INCLUDES) \
-           -I$(SAF_SRC_ROOT)/include \
-           -I$(SAF_SRC_ROOT)/src/analysis \
-           -I$(SAF_SRC_ROOT)/src/arrIndexLabeler \
-           -I$(SAF_SRC_ROOT)/src/cfgUtils \
-           -I$(SAF_SRC_ROOT)/src/chkptRangeAnalysis \
-           -I$(SAF_SRC_ROOT)/src/common \
-           -I$(SAF_SRC_ROOT)/src/external \
-           -I$(SAF_SRC_ROOT)/src/lattice \
-           -I$(SAF_SRC_ROOT)/src/mpiAnal \
-           -I$(SAF_SRC_ROOT)/src/ompAnal \
-           -I$(SAF_SRC_ROOT)/src/rwAccessLabeler \
-           -I$(SAF_SRC_ROOT)/src/simpleAnalyses \
-           -I$(SAF_SRC_ROOT)/src/state \
-           -I$(SAF_SRC_ROOT)/src/unionFind \
-           -I$(SAF_SRC_ROOT)/src/varBitVector \
-           -I$(SAF_SRC_ROOT)/src/variables \
-           -I$(SAF_SRC_ROOT)/src/varLatticeVector
-
-INCLUDES = $(ROSE_INCLUDES) \
-           -I$(srcdir) \
-           -I$(SAF_SRC_ROOT) \
-           -I$(SAF_SRC_ROOT)/analysis \
-           -I$(SAF_SRC_ROOT)/arrIndexLabeler \
-           -I$(SAF_SRC_ROOT)/cfgUtils \
-           -I$(SAF_SRC_ROOT)/lattice \
-           -I$(SAF_SRC_ROOT)/rwAccessLabeler \
-           -I$(SAF_SRC_ROOT)/simpleAnalyses \
-           -I$(SAF_SRC_ROOT)/state \
-           -I$(SAF_SRC_ROOT)/variables
-
-#\-I$(DFA_ROOT)/generalDataFlowAnalysisTests
-
+#SUBDIRS = \
+#	constPropAnalysis \
+#	loopAnalysis \
+#	mpiCFG \
+#	mpiUtils \
+#	rankAnalysis
 
 bin_PROGRAMS = mpiAnalysis rankAnalysisTest
-mpiAnalysis_SOURCES = mpiAnalysis.cpp mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h rankAnalysis/pSet.cpp rankAnalysis/pSet.h rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h
-rankAnalysisTest_SOURCES = rankAnalysisTest.cpp rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h rankAnalysis/pSet.cpp rankAnalysis/pSet.h rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h
+
+mpiAnalysis_SOURCES = \
+	mpiAnalysis.cpp \
+	mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h \
+	constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h \
+	rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
+	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
+	rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
+
+rankAnalysisTest_SOURCES = \
+	rankAnalysisTest.cpp \
+	rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
+	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
+	rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
+	
 #liveDeadA_SOURCES = liveDeadA.C
 
 
@@ -83,7 +68,7 @@ CXX_TESTCODES_REQUIRED_TO_PASS =
 TESTCODE_CURRENTLY_FAILING = 
 
 
-ROSE_FLAGS = --edg:no_warnings -w -rose:verbose 0 --edg:restrict #-rose:wave
+#ROSE_FLAGS = --edg:no_warnings -w -rose:verbose 0 --edg:restrict #-rose:wave
 
 PASSING_C_TEST_Objects = $(C_TESTCODES_REQUIRED_TO_PASS:.c=.o)
 
@@ -112,4 +97,3 @@ EXTRA_DIST = $(ALL_TESTCODES) README
 
 clean-local:
 	rm -f *.o rose_*.* *.out *.dot
-	rm -rf QMTest

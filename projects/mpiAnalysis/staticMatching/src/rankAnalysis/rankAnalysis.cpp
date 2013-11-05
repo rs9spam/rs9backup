@@ -125,7 +125,9 @@ void RankAnalysis::genInitState(const Function& func, const DataflowNode& n,
 //    std::cerr << "\nsetScopeStatement() true at Conditional node!";
   }
 
-  if(mpiUtils::isMPIInit(n))
+  MpiUtils u = MpiUtils();
+
+  if(u.isMPIInit(n))
   {
     bound lb = bound(true,1,1,0);
     bound hb = bound(false,1,1,-1);

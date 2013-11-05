@@ -1,0 +1,33 @@
+MA_SRC_ROOT   = $(top_srcdir)/src/midend/programAnalysis/genericDataflow/
+
+# To keep compile commands tidy, please ONLY put required include flags here.
+XXX_INCLUDES = $(ROSE_INCLUDES) \
+          -I$(MA_SRC_ROOT)/include \
+           -I$(MA_SRC_ROOT)/src/analysis \
+           -I$(MA_SRC_ROOT)/src/arrIndexLabeler \
+           -I$(MA_SRC_ROOT)/src/cfgUtils \
+           -I$(MA_SRC_ROOT)/src/chkptRangeAnalysis \
+           -I$(MA_SRC_ROOT)/src/common \
+           -I$(MA_SRC_ROOT)/src/external \
+           -I$(MA_SRC_ROOT)/src/lattice \
+           -I$(MA_SRC_ROOT)/src/mpiAnal \
+           -I$(MA_SRC_ROOT)/src/ompAnal \
+           -I$(MA_SRC_ROOT)/src/rwAccessLabeler \
+           -I$(MA_SRC_ROOT)/src/simpleAnalyses \
+           -I$(MA_SRC_ROOT)/src/state \
+           -I$(MA_SRC_ROOT)/src/unionFind \
+           -I$(MA_SRC_ROOT)/src/varBitVector \
+           -I$(MA_SRC_ROOT)/src/variables \
+           -I$(MA_SRC_ROOT)/src/varLatticeVector
+           
+INCLUDES = $(ROSE_INCLUDES) \
+           -I$(srcdir) \
+           -I$(MA_SRC_ROOT) \
+           -I$(MA_SRC_ROOT)/analysis \
+           -I$(MA_SRC_ROOT)/arrIndexLabeler \
+           -I$(MA_SRC_ROOT)/cfgUtils \
+           -I$(MA_SRC_ROOT)/lattice \
+           -I$(MA_SRC_ROOT)/rwAccessLabeler \
+           -I$(MA_SRC_ROOT)/simpleAnalyses \
+           -I$(MA_SRC_ROOT)/state \
+           -I$(MA_SRC_ROOT)/variables
