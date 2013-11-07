@@ -206,9 +206,7 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
           //(rank <= int) || (int <= rank)
           //(rank > int) || (int > rank)
           //(rank >= int) || (int >= rank)
-
-
-
+#if 0
 //          std::cerr << "\nTRUE_SET " << lattice->procSetsStr(true_sets);
 //          std::cerr << "\nFALSE_SET " << lattice->procSetsStr(false_sets);
           std::vector<DataflowEdge> out_edges = n.outEdges();
@@ -226,11 +224,15 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
           }
 //          std::cerr << "\nTRUE_TARGET " << true_target;
 //          std::cerr << "\nFALSE_TARGET " << false_target;
+
           //add true and false sets (if one of them does not exist set modified to true.)
           modified = lattice->pushPSetToOutVec(true_sets, true_target);
           modified = lattice->pushPSetToOutVec(false_sets, false_target);
 //          std::cerr << "\nLATTICE FROM AFTER IF INSERT:\n" << lattice->toString();
-
+#endif
+          MpiUtils mu = MpiUtils();
+          modified = lattice->pushPSetToOutVec(true_sets, mu.getTrueSuccessor(n));
+          modified = lattice->pushPSetToOutVec(false_sets, mu.getFalseSuccessor(n));
         }
       }
       else

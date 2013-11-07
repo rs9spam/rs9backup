@@ -50,7 +50,55 @@ bool MpiUtils::isMPICommSize(const SgNode* node)
   return false;
 }
 
+//=======================================================================================
+bool MpiUtils::isLoopStmt(const DataflowNode& n)
+{
+  SgNode* node = n.getNode();
+  if(isSgForStatement(node))
+    return true;
+  return false;
+}
 
+#if 0
+//=======================================================================================
+bool MpiUtils::isFalseSuccessor(CFGNode* this_n, CFGNode* that_n)
+{
+  //TODO find out how to do that....
+  //First check if it is a forking node.
+  //SgStatement* else_body = (that_n->getNode())->get_else_body();
+  return false;
+}
+#endif
+
+//=======================================================================================
+SgNode* MpiUtils::getTrueSuccessor(const DataflowNode& n)
+{
+  std::vector<DataflowEdge> out_edges = n.outEdges();
+  std::vector<DataflowEdge>::iterator it = out_edges.begin();
+  SgNode* true_target = NULL;
+  for(; it != out_edges.end(); ++it)
+    if(it->condition() == VirtualCFG::eckTrue)
+    {
+      true_target = it->target().getNode();
+      break;
+    }
+  return true_target;
+}
+
+//=======================================================================================
+SgNode* MpiUtils::getFalseSuccessor(const DataflowNode& n)
+{
+  std::vector<DataflowEdge> out_edges = n.outEdges();
+  std::vector<DataflowEdge>::iterator it = out_edges.begin();
+  SgNode* false_target = NULL;
+  for(; it != out_edges.end(); ++it)
+    if(it->condition() == VirtualCFG::eckFalse)
+    {
+      false_target = it->target().getNode();
+      break;
+    }
+  return false_target;
+}
 
 #if 0
 /*

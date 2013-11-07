@@ -39,11 +39,11 @@ void MPICFG::build(){
 //===================================================================================
 void MPICFG::buildCFG()
 {
-  //CFG::buildFullCFG();
+  CFG::buildFullCFG();
 
   // Use buildFilteredCFG from MPICFG since the one from CFG pushes wrong CFG nodes
   // to all_nodes node collection.
-  MPICFG::buildFilteredCFG();
+//  MPICFG::buildFilteredCFG();
 }
 
 //===================================================================================

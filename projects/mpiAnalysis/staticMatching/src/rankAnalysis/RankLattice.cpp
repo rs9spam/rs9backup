@@ -342,19 +342,19 @@ bool RankLattice::mergePSets(const PSet& p_set)
         u_set.push_back(*it);
         covered = true;
       }
-      if(in_set < *it && !in_set.interleavesOrTouches(*it))
+      else if(in_set < *it && !in_set.interleavesOrTouches(*it))
       {
         u_set.push_back(in_set);
         u_set.push_back(*it);
         modified = true;
         covered = true;
       }
-      if(*it < in_set && !in_set.interleavesOrTouches(*it))
+      else if(*it < in_set && !in_set.interleavesOrTouches(*it))
       {
         u_set.push_back(*it);
         modified = true;
       }
-      if(in_set.interleavesOrTouches(*it))
+      else if(in_set.interleavesOrTouches(*it))
       {
         in_set = in_set.combineWith(*it);
         modified = true;

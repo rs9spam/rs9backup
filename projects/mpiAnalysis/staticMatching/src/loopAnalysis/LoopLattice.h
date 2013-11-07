@@ -27,7 +27,7 @@ struct loopCountStruct
   bool over_approx_;
   //! The loop count is either an integer value or a fraction of the process number.
   //! This Count is represented by the struct bound.
-  const bound count_;
+  bound count_;
 
   //! default + parameterized constructor
   loopCountStruct(const bool oa = false, const bound b = bound(true,1,1,1))
@@ -121,7 +121,19 @@ protected:
   //! ..
   //
   //!
-  std::list<std::pair<CFGNode*, loopCountStruct> > loop_count_list_;
+  std::list<std::pair<SgNode*, loopCountStruct> > loop_count_list_;
+
+  /////////////////////////////////////////////////////////////////////////////////////
+  ///////////////    to be initialized by init function   /////////////////////////////
+  //!
+  bool is_handled_loop_;
+  //! If
+  SgNode* node_;
+  //!
+  SgNode* false_successor_;
+  //!
+  loopCountStruct lcs_;
+  /////////////////////////////////////////////////////////////////////////////////////
 
 //=======================================================================================
 public:
@@ -141,14 +153,51 @@ public:
 
 //=======================================================================================
 public:
+  //! Adds lcs to the list of loopCountStructs if it is not already there.
+  //
+  //! Returns true, if the loopCountStruct list was modified.
+  //! Return false, if nothing modified because loopCountStruct already contained lcs.
+  bool addLoopCountStruct(SgNode* node, loopCountStruct lcs);
   //!
-  void pushBack(const CFGNode* cfgn, const loopCountStruct lcs);
+  void pushBack(SgNode* node, loopCountStruct lcs);
   //!
   void popBack();
   //!
-  std::pair<CFGNode*, loopCountStruct> getCountBack() const;
+  std::pair<SgNode*, loopCountStruct> getCountBack() const;
   //!
   loopCountStruct getCountProduct() const;
+
+  //=======================================================================================
+  //!
+  bool hasEqualList(const std::list<std::pair<SgNode*, loopCountStruct> > l) const;
+  //!
+  bool hasEqualList(const LoopLattice* that) const;
+  //!
+  void copyList(const LoopLattice* that);
+  //!
+  void copyList(const std::list<std::pair<SgNode*, loopCountStruct> > l);
+  //!
+  std::list<std::pair<SgNode*, loopCountStruct> > getLoopCountList() const;
+  //!
+  std::list<std::pair<SgNode*, loopCountStruct> > getFalseList() const;
+
+//=======================================================================================
+  //!
+  bool isHandledLoop() const {return is_handled_loop_;};
+  //!
+  void isHandledLoop(bool handle) {is_handled_loop_ = handle;};
+  //!
+  SgNode* getNode() const {return node_;};
+  //!
+  void setNode(SgNode* node) {node_ = node;};
+  //!
+  SgNode* getFalseSuccessor() const {return false_successor_;};
+  //!
+  void setFalseSuccessor(SgNode* node) {false_successor_ = node;};
+  //!
+  loopCountStruct getLoopCountStruct() const {return lcs_;};
+  //!
+  void setLoopCountStruc(loopCountStruct lcs) {lcs_ = lcs;};
 
 //=======================================================================================
 public:

@@ -29,6 +29,15 @@ struct bound
   {
   }
 
+  //!
+  bound(int off)
+  {
+    abs = true;
+    n = 1;
+    d = 1;
+    o = off;
+  }
+
   //! assignment operator
   bound& operator=(const bound& b)
   {
@@ -49,6 +58,14 @@ struct bound
   bound operator-(const int& off) const
   {
     return bound(abs, n, d, o - off);
+  }
+
+  //!
+  bound operator-(const bound& that) const
+  {
+    if(that.abs)
+      return bound(abs, n, d, o - that.o);
+    return bound(abs, n, d, o);
   }
 
   //! add off to old offset

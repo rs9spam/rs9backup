@@ -5,7 +5,7 @@
 
 #include "rose.h"
 #include "dataflow.h"
-#include "mpiUtils.h"
+#include "mpiUtils/mpiUtils.h"
 #include "cfgUtils.h"
 #include "latticeFull.h"
 #include "rankAnalysis/pSet.h"
@@ -60,6 +60,17 @@ public:
   //!            funtion takes theses lattices as input and overwrites the with
   bool transfer(const Function& func, const DataflowNode& n,
                 NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+  //! returns loop bound if it is a handled loop
+  //! returns over_approx if it is not a handled loop
+  //! returns 1 if it is not a loop
+  loopCountStruct getLoopBound(const DataflowNode& n) const;
+
+  //!
+  bool isCoveredLoop(const DataflowNode& n) const;
+
+
+
 
 //=======================================================================================
 #if 0

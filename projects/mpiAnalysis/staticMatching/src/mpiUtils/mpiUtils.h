@@ -26,6 +26,16 @@ public:
   static bool isMPICommRank(const SgNode* node);
   //!
   static bool isMPICommSize(const SgNode* node);
+  //!
+  static bool isLoopStmt(const DataflowNode& n);
+#if 0
+  //!
+  static bool isFalseSuccessor(CFGNode* this_n, CFGNode* that_n);
+#endif
+  //! Returns the SgNode of the True successor DataflowNode of n.
+  static SgNode* getTrueSuccessor(const DataflowNode& n);
+  //! Returns the SgNode of the False successor DataflowNode of n.
+  static SgNode* getFalseSuccessor(const DataflowNode& n);
 };
 
 #endif /* MPIUTILS_H_ */
