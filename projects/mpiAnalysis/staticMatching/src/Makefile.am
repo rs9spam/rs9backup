@@ -24,6 +24,7 @@ rankAnalysisTest_SOURCES = \
 	rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
 	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
 	rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+	rankAnalysis/FinestPSetGranularity.cpp rankAnalysis/FinestPSetGranularity.h \
 	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
 	
 loopAnalysisTest_SOURCES = \

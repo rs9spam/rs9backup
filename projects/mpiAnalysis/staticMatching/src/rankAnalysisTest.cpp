@@ -1,5 +1,6 @@
 #include "rose.h"
 #include "rankAnalysis/rankAnalysis.h"
+#include "rankAnalysis/FinestPSetGranularity.h"
 
 int rankAnalysisTestDebugLevel = 0;
 
@@ -114,14 +115,22 @@ int main(int argc, char *argv[])
   if(ep.failure)
   {
       std::cerr << "\nTEST FAIL\n";
-      std::cerr << ep.fail << " lattice was not defined at certain nodes.\n";
+      std::cerr << ep.fail << " lattice was not defined at certain nodes...\n";
       std::cerr << ep.pass << " Passe!\n";
   }
   else
   {
       std::cerr << "\nTEST PASSED\n";
-      std::cerr << ep.pass << " nodes passed successfully!\n";
+      std::cerr << ep.pass << " nodes passed successfully right now!\n";
       std::cerr << ep.fail << " Fails!\n";
   }
+
+  FinestPSetGranularity fpsg(&rankA);
+  UnstructuredPassInterAnalysis upia_fpsg(fpsg);
+  upia_fpsg.runAnalysis();
+  fpsg.buildPSets();
+  std::cerr << fpsg.toStr() << std::endl;
+
+
   return 0;
 }
