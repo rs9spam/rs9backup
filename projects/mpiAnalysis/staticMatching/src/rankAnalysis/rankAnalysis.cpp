@@ -1,5 +1,5 @@
 #include "rankAnalysis/rankAnalysis.h"
-
+#include "mpiUtils/mpiUtils.h"
 #include <stdlib.h>
 
 int rrankAnalysisDebugLevel=1;
@@ -125,9 +125,7 @@ void RankAnalysis::genInitState(const Function& func, const DataflowNode& n,
 //    std::cerr << "\nsetScopeStatement() true at Conditional node!";
   }
 
-  MpiUtils u = MpiUtils();
-
-  if(u.isMPIInit(n))
+  if(MpiUtils::isMPIInit(n))
   {
     bound lb = bound(true,1,1,0);
     bound hb = bound(false,1,1,-1);
@@ -230,9 +228,10 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
           modified = lattice->pushPSetToOutVec(false_sets, false_target);
 //          std::cerr << "\nLATTICE FROM AFTER IF INSERT:\n" << lattice->toString();
 #endif
-          MpiUtils mu = MpiUtils();
-          modified = lattice->pushPSetToOutVec(true_sets, mu.getTrueSuccessor(n));
-          modified = lattice->pushPSetToOutVec(false_sets, mu.getFalseSuccessor(n));
+          modified = lattice->pushPSetToOutVec(true_sets,
+                                               MpiUtils::getTrueSuccessor(n));
+          modified = lattice->pushPSetToOutVec(false_sets,
+                                               MpiUtils::getFalseSuccessor(n));
         }
       }
       else

@@ -367,3 +367,5 @@ projects/mpiAnalysis/staticMatching/tests/index.html
 projects/mpiAnalysis/staticMatching/tests/monte.c.main.MPIICFG.dot
 projects/mpiAnalysis/staticMatching/tests/summary.html
 projects/mpiAnalysis/staticMatching/tests/val_out.txt
+aastoero
+config.log

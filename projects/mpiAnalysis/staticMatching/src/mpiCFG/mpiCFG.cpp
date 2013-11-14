@@ -235,9 +235,9 @@ void MPICFG::buildMPISend()
 {
   BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 1)  && isMPISend((p.first).getNode())) {
-      if( ((p.first).isInteresting())  && isMPISend((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 0)  && isMPISend((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 1)  && MpiUtils::isMPISend((p.first).getNode())) {
+      if( ((p.first).isInteresting())  && MpiUtils::isMPISend((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 0)  && MpiUtils::isMPISend((p.first).getNode())) {
         //mpi_send_nodes_[p.first] = p.second;
         pair_n new_p = pair<VirtualCFG::CFGNode, SgGraphNode*>(p.first,p.second);
         mpi_send_nodes_.insert(new_p);
@@ -251,28 +251,13 @@ void MPICFG::buildMPISend()
 }
 
 //===================================================================================
-bool MPICFG::isMPISend(SgNode* node)
-{
-  string name;
-  if( isSgFunctionCallExp(node)) {
-    if( isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())) {
-      name = isSgFunctionRefExp(isSgFunctionCallExp(node)
-                                      ->get_function())->get_symbol()->get_name();
-      if(name == "MPI_Send" || name == "MPI_Isend")
-        return true;
-    }
-  }
-  return false;
-}
-
-//===================================================================================
 void MPICFG::buildMPIRecv()
 {
   BOOST_FOREACH( pair_n p, all_nodes_) {
     if(isSgFunctionCallExp((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 1)  && isMPIRecv((p.first).getNode())) {
-      if( ((p.first).isInteresting()) && isMPIRecv((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 0) && isMPIRecv((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 1)  && MpiUtils::isMPIRecv((p.first).getNode())) {
+      if( ((p.first).isInteresting()) && MpiUtils::isMPIRecv((p.first).getNode())) {
+//      if( ((p.first).getIndex() == 0) && MpiUtils::isMPIRecv((p.first).getNode())) {
         mpi_recv_nodes_[p.first] = p.second;
         //TODO: remove debug output
 //        std::cerr << endl
@@ -281,23 +266,6 @@ void MPICFG::buildMPIRecv()
       }
     }
   }
-}
-
-//===================================================================================
-bool MPICFG::isMPIRecv(SgNode* node)
-{
-  string name;
-  if( isSgFunctionCallExp(node))
-  {
-    if( isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function()))
-    {
-      name = isSgFunctionRefExp(isSgFunctionCallExp(node)->get_function())
-                                                         ->get_symbol()->get_name();
-      if(name == "MPI_Recv" || name == "MPI_Irecv")
-        return true;
-    }
-  }
-  return false;
 }
 
 //===================================================================================
@@ -1253,7 +1221,7 @@ void MPICFG::mpiPrintNode(std::ostream& o, const VirtualCFG::CFGNode& node)
   std::string nodeColor = "black";
   std::string nodeStyle = "solid";
 
-  if(isMPISend(node.getNode())) {
+  if(MpiUtils::isMPISend(node.getNode())) {
     nodeColor = "blue";
     nodeStyle = "bold";
   }

@@ -248,19 +248,29 @@ protected:
   bool empty_;  //!< true if the set is empty
 
 public:
-  //! PSet Constructor with empty flag and all bound values as single arguments.
-  PSet(bool empty,
-       bool lb_abs, bool hb_abs,
-       int lnum, int hnum,
-       int lden, int hden,
-       int loff, int hoff);
-  //! PSet Constructor with empty flag, lower and upper bound as arguments .
+  /**
+   * @brief PSet Constructor with empty flag, lower and upper bound as arguments.
+   */
   PSet(bool empty, bound lb, bound hb);
-  //! Default PSet Constructor which sets the empty flag and sets default bound values.
+
+  /**
+   * @brief Default PSet Constructor which sets the empty flag and sets
+   *        default bound values.
+   */
   PSet();
-  //!
+
+  /**
+   * @brief More intuitive Constructor for generating a single element PSet.
+   * @param empty True if the PSet should represent an empty set.
+   * @param value The absolute value for the lower and for the upper bound.
+   *
+   * This Constructor is provided because it is more intuitive than creating a PSet
+   * with a lower and an upper bound which are the same. But it basically does only that.
+   */
   PSet(bool empty, int value);
-  //! Copy constructor
+  /**
+   * @brief Copy constructor.
+   */
   PSet(const PSet& that);
 //=======================================================================================
   //! Returns True if PSet is empty.
@@ -277,50 +287,49 @@ public:
   bool isMinBound() const;
   //! returns true if the maximum bound of the Set is number of processes - 1
   bool isMaxBound() const;
-  //! Returns true if 100% sure about the decision that bound is within the PSet
-  bool contains(bool abs, int num, int den, int off) const;
-  //! Returns true if 100% sure about the decision that bound is within the PSet
+
+  /**
+   * @brief Returns true if 100% sure about the decision that bound is within the PSet.
+   */
   bool contains(const bound& b) const;
-  //! Return true if the two sets intersect or touch.
+
+  /**
+   * @brief Returns true if this PSet contains the elements of that PSet.
+   */
+  bool contains(const PSet& that) const;
+
+  /**
+   * @brief Return true if the two sets intersect or touch.
+   */
   bool interleavesOrTouches(const PSet& that) const;
 //=======================================================================================
-  //! Returns the Union of PSet this and p in case they intersect or touch or returns
-  //! PSet this otherwise.
-  //
-  //!
+  /**
+   * @brief Returns the Union of PSet this and p in case they intersect or touch or
+   *        returns PSet this otherwise.
+   * @param that
+   * @return
+   */
   PSet combineWith(const PSet& that) const;
-  //! Returns PSet this intersected with PSet p.
-  //
-  //! Returns
+
+  /**
+   * @brief Returns PSet this intersected with PSet p.
+   */
   PSet intersectWith(const PSet& that) const;
-  //! Removes that PSet from this PSet and returns the resulting PSet or PSets.
-  //
-  //! If this or that is empty, the result is that.
-  //! May return one or two process sets in the return vector.
-  //! Two Sets are possible, if that is a subset of A and not reaching the lower or
-  //! the upper bound.
+
+  /**
+   * @brief Removes that PSet from this PSet and returns the resulting PSet or PSets.
+   * @param that PSet to be removed from this PSet.
+   * @return One or two PSets that represent this without that.
+   *
+   * If this or that is empty, the result is that.
+   * May return one or two process sets in the return vector.
+   * Two Sets are possible, if that is a subset of A and not reaching the lower or
+   * the upper bound.
+   */
   std::vector<PSet> remove(const PSet& that) const;
 //=======================================================================================
-#if 0
-  int getLnum() const;
-  int getHnum() const;
-  int getLden() const;
-  int getHden() const;
-  int getLoff() const;
-  int getHoff() const;
-#endif
   bound getHBound() const;
   bound getLBound() const;
-#if 0
-  void setLnum(const int& lnum);
-  void setHnum(const int& hnum);
-  void setLden(const int& lden);
-  void setHden(const int& hden);
-  void setLoff(const int& loff);
-  void setHoff(const int& hoff);
-#endif
-  void setLow(bool abs, int num, int den, int off);
-  void setHigh(bool abs, int num, int den, int off);
   void setLBound(const bound& b);
   void setHBound(const bound& b);
 //=======================================================================================
@@ -341,15 +350,24 @@ public:
   //! hard copy from that to this
   bool copy(const PSet& that);
 
+//=======================================================================================
   // ************************
   // *** NodeFact methods ***
   // ************************
-//=======================================================================================
-  //!
+
+  /**
+   *
+   */
   NodeFact* copy() const;
-  //! Returns a string representation of this set
+
+  /**
+   * @brief Returns a string representation of this set.
+   */
   string toString() const;
-  //! Returns a string representation of this set
+
+  /**
+   * @brief Returns a string representation of this set.
+   */
   string str(string indent="");
 };
 #endif

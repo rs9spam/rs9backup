@@ -8,7 +8,7 @@ include $(top_srcdir)/projects/mpiAnalysis/common.deb.libs
 #	mpiUtils \
 #	rankAnalysis
 
-bin_PROGRAMS = mpiAnalysis rankAnalysisTest loopAnalysisTest
+bin_PROGRAMS = mpiAnalysis rankAnalysisTest loopAnalysisTest rankMpiCallListTest
 
 mpiAnalysis_SOURCES = \
 	mpiAnalysis.cpp \
@@ -33,6 +33,18 @@ loopAnalysisTest_SOURCES = \
 	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
 	loopAnalysis/LoopLattice.cpp loopAnalysis/LoopLattice.h \
 	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h	
+
+rankMpiCallListTest_SOURCES = \
+	rankMpiCallListTest.cpp \
+	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
+	rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+	rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
+	loopAnalysis/LoopLattice.cpp loopAnalysis/LoopLattice.h \
+	loopAnalysis/loopAnalysis.cpp loopAnalysis/loopAnalysis.h \
+	rankAnalysis/FinestPSetGranularity.cpp rankAnalysis/FinestPSetGranularity.h \
+	rankMpiCallList/CallAnalysis.cpp rankMpiCallList/CallAnalysis.h \
+	rankMpiCallList/CallLattice.cpp rankMpiCallList/CallLattice.h \
+	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
 	
 #liveDeadA_SOURCES = liveDeadA.C
 

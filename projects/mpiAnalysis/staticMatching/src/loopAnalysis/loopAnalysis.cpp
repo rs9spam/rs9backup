@@ -73,15 +73,14 @@ void LoopAnalysis::genInitState(const Function& func, const DataflowNode& n,
                            std::vector<NodeFact*>& initFacts)
 {
   LoopLattice* l = new LoopLattice(start_value_);
-  MpiUtils mu = MpiUtils();
   l->setNode(n.getNode());
   //check if any loop, since if it is a not handle able loop,
   //the bound is going to be infinite.
-  if(mu.isLoopStmt(n))
+  if(MpiUtils::isLoopStmt(n))
   {
     l->isHandledLoop(true);
-    l->setFalseSuccessor(mu.getFalseSuccessor(n));
-    l->setLoopCountStruc(getLoopBound(n));
+    l->setFalseSuccessor(MpiUtils::getFalseSuccessor(n));
+    l->setLoopCount(getLoopBound(n));
   }
   initLattices.push_back(l);
 }
@@ -95,7 +94,7 @@ bool LoopAnalysis::transfer(const Function& func, const DataflowNode& n,
   LoopLattice* ll = dynamic_cast<LoopLattice*>(*(dfInfo.begin()));
 
   if(ll->isHandledLoop())
-    return ll->addLoopCountStruct(ll->getNode(), ll->getLoopCountStruct());
+    return ll->addLoopCount(ll->getNode(), ll->getLoopCount());
 //  if(loopAnalysisDebugLevel >= 1)
 //    std::cerr << "          ELSE\n";
 //  if(loopAnalysisDebugLevel >= 3)
@@ -111,18 +110,17 @@ bool LoopAnalysis::transfer(const Function& func, const DataflowNode& n,
 }
 
 //=======================================================================================
-loopCountStruct LoopAnalysis::getLoopBound(const DataflowNode& n) const
+_Loop_Count_ LoopAnalysis::getLoopBound(const DataflowNode& n) const
 {
-  MpiUtils mu = MpiUtils();
-  if(!mu.isLoopStmt(n))
-    return loopCountStruct();
+  if(!MpiUtils::isLoopStmt(n))
+    return _Loop_Count_();
 
   if(!isCoveredLoop(n))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
 
   SgForStatement* fstmt = isSgForStatement(n.getNode());
   if(fstmt == NULL)
-    return loopCountStruct();
+    return _Loop_Count_();
 
   SgForInitStatement* for_init_stmt = fstmt->get_for_init_stmt();
   SgStatement* condition = fstmt->get_test();
@@ -133,27 +131,27 @@ loopCountStruct LoopAnalysis::getLoopBound(const DataflowNode& n) const
 
   //get bound(init_value)
   if(for_init_stmt == NULL || condition == NULL || increment ==NULL)
-      return loopCountStruct(true);
+      return _Loop_Count_(true);
   SgStatementPtrList stmt_list = for_init_stmt->get_init_stmt();
   if(stmt_list.empty())
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   SgNode* tmp_stmt = *(stmt_list.begin());
   if(!isSgExprStatement(tmp_stmt))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   if(!isSgAssignOp(isSgExprStatement(tmp_stmt)->get_expression()))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   tmp_stmt = isSgAssignOp(isSgExprStatement(tmp_stmt)->get_expression());
   SgExpression* lhs = isSgBinaryOp(tmp_stmt)->get_lhs_operand();
   SgExpression* rhs = isSgBinaryOp(tmp_stmt)->get_rhs_operand();
   if(!(isSgVarRefExp(lhs) && isSgIntVal(rhs)))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   init_bound = bound(isSgIntVal(rhs)->get_value());
 
   //get end_value
   if(!isSgExprStatement(condition))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   if(!isSgNotEqualOp(isSgExprStatement(condition)->get_expression()))
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
   tmp_stmt = isSgNotEqualOp(isSgExprStatement(condition)->get_expression());
   rhs = isSgBinaryOp(tmp_stmt)->get_rhs_operand();
   if(isSgIntVal(rhs) )
@@ -162,7 +160,7 @@ loopCountStruct LoopAnalysis::getLoopBound(const DataflowNode& n) const
       isSgVarRefExp(rhs)->get_symbol()->get_name().getString() == this->size_var_.str())
     end_bound = bound(false,1,1,0);
   else
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
 
   //get increment
   //if(increment == ++)
@@ -176,11 +174,11 @@ loopCountStruct LoopAnalysis::getLoopBound(const DataflowNode& n) const
   else if(isSgMinusMinusOp(increment))
     loop_bound = init_bound - end_bound;
   else
-    return loopCountStruct(true);
+    return _Loop_Count_(true);
 
   if(loopAnalysisDebugLevel >= 2)
       std::cerr << "   Returning loop_bound  " << loop_bound.toStr();
-  return loopCountStruct(false,loop_bound);
+  return _Loop_Count_(false,loop_bound);
 }
 
 //=======================================================================================

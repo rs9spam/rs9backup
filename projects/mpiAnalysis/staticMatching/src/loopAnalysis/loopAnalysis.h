@@ -64,7 +64,7 @@ public:
   //! returns loop bound if it is a handled loop
   //! returns over_approx if it is not a handled loop
   //! returns 1 if it is not a loop
-  loopCountStruct getLoopBound(const DataflowNode& n) const;
+  _Loop_Count_ getLoopBound(const DataflowNode& n) const;
 
   //!
   bool isCoveredLoop(const DataflowNode& n) const;

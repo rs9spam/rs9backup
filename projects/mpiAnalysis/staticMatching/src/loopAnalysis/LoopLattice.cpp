@@ -20,7 +20,7 @@ LoopLattice::LoopLattice()
   this->node_ = NULL;
   this->false_successor_ = NULL;
   this->is_handled_loop_ = false;
-  this->lcs_ = loopCountStruct();
+  this->lcs_ = _Loop_Count_();
 }
 
 //=======================================================================================
@@ -30,7 +30,7 @@ LoopLattice::LoopLattice( int v )
   this->node_ = NULL;
   this->false_successor_ = NULL;
   this->is_handled_loop_ = false;
-  this->lcs_ = loopCountStruct();
+  this->lcs_ = _Loop_Count_();
 }
 
 //=======================================================================================
@@ -45,9 +45,9 @@ LoopLattice::LoopLattice (const LoopLattice& that)
 }
 
 //=======================================================================================
-bool LoopLattice::addLoopCountStruct(SgNode* node, loopCountStruct lcs)
+bool LoopLattice::addLoopCount(SgNode* node, _Loop_Count_ lcs)
 {
-  std::list<std::pair<SgNode*, loopCountStruct> >::iterator it;
+  std::list<std::pair<SgNode*, _Loop_Count_> >::iterator it;
   for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     if(it->first == node)
       return false;
@@ -56,9 +56,9 @@ bool LoopLattice::addLoopCountStruct(SgNode* node, loopCountStruct lcs)
 }
 
 //=======================================================================================
-void LoopLattice::pushBack(SgNode* node, loopCountStruct lcs)
+void LoopLattice::pushBack(SgNode* node, _Loop_Count_ lcs)
 {
-  std::pair<SgNode*, loopCountStruct> p(node, lcs);
+  std::pair<SgNode*, _Loop_Count_> p(node, lcs);
   loop_count_list_.push_back(p);
 }
 
@@ -69,17 +69,17 @@ void LoopLattice::popBack()
 }
 
 //=======================================================================================
-std::pair<SgNode*, loopCountStruct> LoopLattice::getCountBack() const
+std::pair<SgNode*, _Loop_Count_> LoopLattice::getCountBack() const
 {
   return loop_count_list_.back();
 }
 
 //=======================================================================================
-loopCountStruct LoopLattice::getCountProduct() const
+_Loop_Count_ LoopLattice::getCountProduct() const
 {
-  loopCountStruct lcs = loopCountStruct();
+  _Loop_Count_ lcs = _Loop_Count_();
 
-  std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator it;
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
   for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     lcs = lcs * it->second;
 
@@ -88,11 +88,11 @@ loopCountStruct LoopLattice::getCountProduct() const
 
 //=======================================================================================
 bool LoopLattice::hasEqualList(
-                       const std::list<std::pair<SgNode*, loopCountStruct> > l) const
+                       const std::list<std::pair<SgNode*, _Loop_Count_> > l) const
 {
-  std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator this_it
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator this_it
                                                         = this->loop_count_list_.begin();
-  std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator that_it;
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator that_it;
   bool found;
   for(; this_it != this->loop_count_list_.end(); ++this_it)
   {
@@ -123,25 +123,25 @@ void LoopLattice::copyList(const LoopLattice* that)
 }
 
 //=======================================================================================
-void LoopLattice::copyList(const std::list<std::pair<SgNode*, loopCountStruct> > l)
+void LoopLattice::copyList(const std::list<std::pair<SgNode*, _Loop_Count_> > l)
 {
   this->loop_count_list_ = l;
 }
 
 //=======================================================================================
-std::list<std::pair<SgNode*, loopCountStruct> > LoopLattice::getLoopCountList() const
+std::list<std::pair<SgNode*, _Loop_Count_> > LoopLattice::getLoopCountList() const
 {
   return this->loop_count_list_;
 }
 
 //=======================================================================================
-std::list<std::pair<SgNode*, loopCountStruct> > LoopLattice::getFalseList() const
+std::list<std::pair<SgNode*, _Loop_Count_> > LoopLattice::getFalseList() const
 {
   if(this->node_ == NULL)
     return this->loop_count_list_;
 
-  std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator it;
-  std::list<std::pair<SgNode*, loopCountStruct> > r_list;
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
+  std::list<std::pair<SgNode*, _Loop_Count_> > r_list;
   r_list.clear();
   for(it = loop_count_list_.begin(); it != loop_count_list_.end(); ++it)
   {
@@ -154,8 +154,6 @@ std::list<std::pair<SgNode*, loopCountStruct> > LoopLattice::getFalseList() cons
 // **********************************************
 // Required definition of pure virtual functions.
 // **********************************************
-// computes the meet of this lattice and that lattice and saves the result in this lattice
-// returns true if this causes this lattice to change and false otherwise
 //=======================================================================================
 bool LoopLattice::meetUpdate(Lattice* X)  //TODO
 {
@@ -187,7 +185,7 @@ void LoopLattice::initialize()
   this->node_ = NULL;
   this->false_successor_ = NULL;
   this->is_handled_loop_ = false;
-  this->lcs_ = loopCountStruct();
+  this->lcs_ = _Loop_Count_();
 }
 
 // returns a copy of this lattice
@@ -233,9 +231,9 @@ string LoopLattice::str(string indent)
 string LoopLattice::toString() const
 {
   ostringstream outs;
-  loopCountStruct lcs = this->getCountProduct();
+  _Loop_Count_ lcs = this->getCountProduct();
   outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
-  std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator it;
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
   for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     outs << it->second.toStr();
   outs << "}";
@@ -246,9 +244,9 @@ string LoopLattice::toString() const
 string LoopLattice::toStringForDebugging() const  //TODO some node info
 {
   ostringstream outs;
-  loopCountStruct lcs = this->getCountProduct();
+  _Loop_Count_ lcs = this->getCountProduct();
     outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
-    std::list<std::pair<SgNode*, loopCountStruct> >::const_iterator it;
+    std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
     for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     {
       outs << "<" << it->first->class_name() << ">"

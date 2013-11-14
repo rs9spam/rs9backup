@@ -7,8 +7,8 @@
 #include <map>
 #include <set>
 #include <string>
-#include "mpiCFG.h"
 #include "dataflow.h"
+#include "mpiUtils/mpiUtils.h"
 
 #include "latticeFull.h"
 #include "liveDeadVarAnalysis.h"
@@ -72,11 +72,6 @@ protected:
                 std::set<CFGNode>& explored,
                 ClassHierarchyWrapper* classHierarchy);
 
-#if 0
-  //void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
-  //all nodes already defined in staticCFG.h
-  //std::map<CFGNode, SgGraphNode*> all_nodes_;
-#endif
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 public:
   MPICFG() : CFG() {}
@@ -113,46 +108,63 @@ public:
   //! Build CFG according to the 'is_filtered_' flag.
   virtual void buildCFG();
 
+//===================================================================================
 protected:
-  //! Build CFG for debugging.
+  /**
+   * @brief Build CFG for debugging.
+   */
   virtual void buildFullCFG();
-  //! Build nice CFG.
+
+  /**
+   * @brief Build nice CFG.
+   */
   void buildFilteredCFG();
 
-  //! Outer constructor calling construct.....
+  /**
+   * @brief Big picture MPIICFG construction function calling fine grain construction.
+   */
   void buildMPIICFG();
 
-  //! Find all MPI_Send function calls and insert the pairs into mpiSendNodes
+  /**
+   * @brief Find all MPI_Send function calls and insert the pairs into mpiSendNodes.
+   */
   void buildMPISend();
 
-  //! Check if SgFunctionCall node is of type MPI Send, MPI_Isend, ...
-  bool isMPISend(SgNode* expr);
-
-  //! Find all MPI_Recv function calls and insert the pairs into mpiRecvNodes
+  /**
+   * @brief Find all MPI_Recv function calls and insert the pairs into mpiRecvNodes.
+   */
   void buildMPIRecv();
 
-  //! Check if SgFunctionCall node is of type MPI_Recv, MPI_Irecv, ...
-  bool isMPIRecv(SgNode* expr);
-
-  //! Fills a Map with all possible match sets, ...
+  /**
+   * @brief Fills a Map with all possible match sets.
+   */
   bool buildFullMPIMatchSet();
 
-  //! Add all possible MPI Edges to MPI_ICFG
+  /**
+   * @brief Add all possible MPI Edges to MPI_ICFG.
+   */
   void addMPIEdgestoICFG();
-#if 0
-  void addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
-#endif
-  //! remove the SgDirectedGraphEdge from the MPI_ICFG
+
+  /**
+   * @brief Remove the SgDirectedGraphEdge from the MPI_ICFG.
+   * @param edge Edge to be removed from the MPI_ICFG.
+   */
   void removeMPIEdge(SgDirectedGraphEdge* edge);
 
-  //! Removes communication Edges with non matching constant data types
-  //! Removes communication Edges with non matching constant data size
-  //! Removes communication Edges with non matching constant communication tag
-  //! Removes communication Edges with non matching constant communication world
+  /**
+   * @brief Refines mpi_communications_ whit constant not matching function parameters.
+   *
+   * Removes communication Edges with non matching constant data types.
+   * Removes communication Edges with non matching constant data size.
+   * Removes communication Edges with non matching constant communication tag.
+   * Removes communication Edges with non matching constant communication world.
+   */
   void refineConstantMatch();
 
-  //! Compares the data type of the MPI_Send and MPI_Recv node
-  //!returns false only if constant Type Arguments do not match!
+  /**
+   * @brief Compares the data type of the MPI_Send and MPI_Recv node.
+   * @return Returns false only if constant Type Arguments do not match.
+   */
   bool constTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
 
   //! Compares the data type of the MPI_Send and MPI_Recv node
@@ -182,8 +194,24 @@ protected:
                     const VirtualCFG::CFGNode& y);
 
 public:
-  //!
+
+  /**
+   * @brief Returns the MPI connection std::multimap.
+   * @return
+   *
+   * This const getter function returns a std::multimap<CFGNode, CFGNode>
+   * which represents the MPI connections.
+   */
+  std::multimap<CFGNode, CFGNode> getMpiConnections() const
+    {return this->mpi_connections_;};
+
+  /**
+   *
+   */
   void setRankInfo(std::vector<DataflowNode> rn);
+  /**
+   *
+   */
   void setRankInfo(RankAnalysis* ra);
   void setRankInfo(RankAnalysis* ra, std::vector<DataflowNode> rn);
   //! Output the MPI ICFG to a DOT file and generates default file name.
@@ -225,6 +253,7 @@ public:
 ////  void addMpiInEdge();
 //};
 
+//TODO: remove this method from this class and put to mpi_utils!
 // The following are some auxiliary functions, since SgGraphNode cannot provide them.
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node);
 std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node);

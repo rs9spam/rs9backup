@@ -30,8 +30,8 @@ void FinestPSetGranularity::visit(const Function& func,
       {
         if(!it->isEmpty())
         {
-          this->all_bounds_.insert(directed_bound(it->getLBound(),true));
-          this->all_bounds_.insert(directed_bound(it->getHBound(),false));
+          this->all_bounds_.insert(_Directed_Bound_(it->getLBound(),true));
+          this->all_bounds_.insert(_Directed_Bound_(it->getHBound(),false));
         }
       }
     }
@@ -48,7 +48,7 @@ void FinestPSetGranularity::buildPSets()
   }
   else if(all_bounds_.size() == 1)
   {
-    std::set<directed_bound>::const_iterator db = all_bounds_.begin();
+    std::set<_Directed_Bound_>::const_iterator db = all_bounds_.begin();
     if(db->is_lb_)
       all_psets_.push_back(PSet(false, db->b_, bound(false, 1, 1, 0)));
     else
@@ -56,7 +56,7 @@ void FinestPSetGranularity::buildPSets()
   }
   else
   {
-    std::set<directed_bound>::const_iterator it = all_bounds_.begin();
+    std::set<_Directed_Bound_>::const_iterator it = all_bounds_.begin();
 
     bound lb, hb;
     hb = bound(true, 1, 1, -1);
@@ -100,7 +100,7 @@ string FinestPSetGranularity::toStr() const
 {
     ostringstream out;
     out << "\n\nFinestPSetGranularityResult: \n  DIRECTED_BOUND:  ";
-    std::set<directed_bound>::const_iterator itb;
+    std::set<_Directed_Bound_>::const_iterator itb;
     for(itb = this->all_bounds_.begin(); itb != this->all_bounds_.end(); ++itb)
       out << " " << itb->toStr();
 
@@ -110,29 +110,3 @@ string FinestPSetGranularity::toStr() const
       out << " " << itp->toString();
     return out.str();
 }
-
-#if 0
-int main(int argc, char *argv[])
-{
-  // Build the AST used by ROSE
-  SgProject* project = frontend(argc,argv);
-  ROSE_ASSERT (project != NULL);
-  initAnalysis(project);
-//  analysisDebugLevel=0;
-  Dbg::init("RANK ANALYSIS TEST", ".", "index.html");
-//  rankAnalysisDebugLevel = 0;
-  CallGraphBuilder cgb(project);
-  cgb.buildCallGraph();
-  SgIncidenceDirectedGraph* graph = cgb.getGraph();
-  RankAnalysis rankA(project);
-  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
-  rankInter.runAnalysis();
-
-
-  FinestPSetGranularity fpsg(&rankA);
-  UnstructuredPassInterAnalysis upia_fpsg(fpsg);
-  upia_fpsg.runAnalysis();
-
-  return 0;
-}
-#endif
