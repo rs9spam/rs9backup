@@ -8,7 +8,7 @@
 
 #include "rankMpiCallList/CallLattice.h"
 
-//extern int mpiCallAnalysisDebugLevel;
+extern int mpiCallAnalysisDebugLevel;
 
 // **********************************************************************
 //                      CallLattice
@@ -148,6 +148,8 @@ bool CallLattice::add(const PSet pset,
 //=======================================================================================
 bool CallLattice::meetUpdate(Lattice* X)  //TODO: check this function
 {
+  if(mpiCallAnalysisDebugLevel >= 1)
+    std::cerr << "\n MEEET UPDATE Call Lattice:";
   bool modified = false;
 
   CallLattice* that = dynamic_cast<CallLattice*>(X);

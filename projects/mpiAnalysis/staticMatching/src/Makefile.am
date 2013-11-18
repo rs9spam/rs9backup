@@ -29,9 +29,13 @@ rankAnalysisTest_SOURCES = \
 	
 loopAnalysisTest_SOURCES = \
 	loopAnalysisTest.cpp \
+	mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h \
+	constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h \
 	loopAnalysis/loopAnalysis.cpp loopAnalysis/loopAnalysis.h \
-	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
 	loopAnalysis/LoopLattice.cpp loopAnalysis/LoopLattice.h \
+	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
+    rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+    rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
 	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h	
 
 rankMpiCallListTest_SOURCES = \

@@ -18,11 +18,11 @@
 //! It is true if it is a lower bound and fals if bound is an upper bound.
 struct _Directed_Bound_
 {
-  bound b_;        //!< Absolute or relative bound.
+  _Bound_ b_;        //!< Absolute or relative bound.
   bool is_lb_;     //!< Lower / upper bound flag.
 
   //! default + parameterized constructor
-  _Directed_Bound_(bound b = bound(), bool lb = true) : b_(b), is_lb_(lb) {}
+  _Directed_Bound_(_Bound_ b = _Bound_(), bool lb = true) : b_(b), is_lb_(lb) {}
 
   /**
    *

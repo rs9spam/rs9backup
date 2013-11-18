@@ -27,13 +27,26 @@ struct _Loop_Count_
   bool over_approx_;
   //! The loop count is either an integer value or a fraction of the process number.
   //! This Count is represented by the struct bound.
-  bound count_;
+  _Bound_ count_;
+
+  _Loop_Count_()
+  {
+    this->over_approx_ = false;
+    this->count_ = _Bound_(true,1,1,1);
+  }
 
   //! default + parameterized constructor
-  _Loop_Count_(const bool oa = false, const bound b = bound(true,1,1,1))
+  _Loop_Count_(bool oa)
   {
     this->over_approx_ = oa;
-    this->count_ = b;
+    this->count_ = _Bound_(true,1,1,1);;
+  }
+
+  //! default + parameterized constructor
+  _Loop_Count_(bool oa, const _Bound_ b)
+  {
+    this->over_approx_ = oa;
+    this->count_(b);
   }
 
   //! constructor
@@ -71,17 +84,17 @@ struct _Loop_Count_
        ||(!this->count_.abs && !that.count_.abs))
       return _Loop_Count_(true);
     if(this->count_.abs && that.count_.abs)
-      return _Loop_Count_(false, bound(true,1,1, this->count_.o * that.count_.o));
+      return _Loop_Count_(false, _Bound_(true,1,1, this->count_.o * that.count_.o));
     if(this->count_.abs)
-      return _Loop_Count_(false, bound(true,
-                                          this->count_.n * that.count_.o,
-                                          this->count_.d,
-                                          this->count_.o * that.count_.o));
+      return _Loop_Count_(false, _Bound_(false,
+                                         that.count_.n * this->count_.o,
+                                         that.count_.d,
+                                         that.count_.o * this->count_.o));
     if(that.count_.abs)
-          return _Loop_Count_(false, bound(true,
-                                              that.count_.n * this->count_.o,
-                                              that.count_.d,
-                                              that.count_.o * this->count_.o));
+          return _Loop_Count_(false, _Bound_(false,
+                                             this->count_.n * that.count_.o,
+                                             this->count_.d,
+                                             this->count_.o * that.count_.o));
     return _Loop_Count_();
   }
 
@@ -106,7 +119,12 @@ struct _Loop_Count_
   {
     ostringstream outs;
     outs << "[";
-    outs << (this->over_approx_) ? "Z+" : this->count_.toStr();
+    (over_approx_) ? outs << "Z+" : outs << count_.toStr();
+    //TODO: remove debug output
+//    std::cerr << "ERROR OUTPUT: {";
+//    (over_approx_) ? std::cerr << "TRUE " : std::cerr <<"FALSE ";
+//    (over_approx_) ? std::cerr << "Z+" : std::cerr << count_.toStr();
+//    std::cerr << "}";
     outs << "]";
     return outs.str();
   }

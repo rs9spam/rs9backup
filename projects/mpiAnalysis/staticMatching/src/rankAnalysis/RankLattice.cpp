@@ -446,7 +446,7 @@ bool RankLattice::pushPSetToOutVec(const std::vector<PSet>& psv, const SgNode* n
 
 #if 0
 //=======================================================================================
-lattice_psets RankLattice::splitPSetsAtBound(bool lowbound, bound b)
+lattice_psets RankLattice::splitPSetsAtBound(bool lowbound, _Bound_ b)
 {
   lattice_psets sub_sets;
   PSet pset;
@@ -538,7 +538,7 @@ lattice_psets RankLattice::computeTrueSet(const DataflowNode& n)
 
 
   //      splitSet(bool islowerbound, bool isabs, int num, int den, int off)
-  bound b_debug = bound(true,0,0,80);
+  _Bound_ b_debug = _Bound_(true,0,0,80);
   t_set = splitPSetsAtBound(false, b_debug);
 
   return t_set;
@@ -552,7 +552,7 @@ lattice_psets RankLattice::computeFalseSet(const DataflowNode& n)
   lattice_psets f_set;
   //TODO: find the real bound
 
-  bound b_debug = bound(true,0,0,60);
+  _Bound_ b_debug = _Bound_(true,0,0,60);
   f_set = splitPSetsAtBound(false, b_debug);
 
   return f_set;

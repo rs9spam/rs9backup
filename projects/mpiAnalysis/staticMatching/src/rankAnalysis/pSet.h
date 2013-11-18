@@ -16,7 +16,7 @@
 //! In the case of a relative bound, the bound is represented as a fraction of
 //! the maximum number of processes plus a value for an offset.
 //! bound = number_of_processes * n / d + o.
-struct bound
+struct _Bound_
 {
   bool abs;  //!< true if it is an absolute bound on the set
   int n;     //!< absolute value for bound numerator
@@ -24,13 +24,13 @@ struct bound
   int o;     //!< offset of relative higher bound or absolute bound value
 
   //! default + parameterized constructor
-  bound(bool abs = true, int n = 1, int d = 1, int o = 0)
+  _Bound_(bool abs = true, int n = 1, int d = 1, int o = 0)
       : abs(abs), n(n), d(d), o(o)
   {
   }
 
   //!
-  bound(int off)
+  _Bound_(int off)
   {
     abs = true;
     n = 1;
@@ -39,7 +39,7 @@ struct bound
   }
 
   //! assignment operator
-  bound& operator=(const bound& b)
+  _Bound_& operator=(const _Bound_& b)
   {
       abs=b.abs;
       n=b.n;
@@ -49,41 +49,41 @@ struct bound
   }
 
   //! add off to old offset
-  bound operator+(const int& off) const
+  _Bound_ operator+(const int& off) const
   {
-    return bound(abs, n, d, o + off);
+    return _Bound_(abs, n, d, o + off);
   }
 
   //! subtract off from old offset
-  bound operator-(const int& off) const
+  _Bound_ operator-(const int& off) const
   {
-    return bound(abs, n, d, o - off);
+    return _Bound_(abs, n, d, o - off);
   }
 
   //!
-  bound operator-(const bound& that) const
+  _Bound_ operator-(const _Bound_& that) const
   {
     if(that.abs)
-      return bound(abs, n, d, o - that.o);
-    return bound(abs, n, d, o);
+      return _Bound_(abs, n, d, o - that.o);
+    return _Bound_(abs, n, d, o);
   }
 
   //! add off to old offset
-  bound& operator+=(const int& off)
+  _Bound_& operator+=(const int& off)
   {
     o += off;
     return *this;
   }
 
   //! subtract off from old offset
-  bound& operator-=(const int& off)
+  _Bound_& operator-=(const int& off)
   {
     o -= off;
     return *this;
   }
 
   //! equality comparison. doesn't modify object. therefore const.
-  bool operator==(const bound& b) const
+  bool operator==(const _Bound_& b) const
   {
     if(abs == true && b.abs == true)
       return (o == b.o);
@@ -92,7 +92,7 @@ struct bound
   }
 
   //! equality comparison. doesn't modify object. therefore const.
-  bool operator!=(const bound& b) const
+  bool operator!=(const _Bound_& b) const
   {
       return !(*this == b);
   }
@@ -100,7 +100,7 @@ struct bound
   //! less comparison.
   //
   //! Returns only true if 100% sure about the less fact.
-  bool operator<(const bound& b) const
+  bool operator<(const _Bound_& b) const
   {
     if(*this == b)
       return false;
@@ -150,7 +150,7 @@ struct bound
   //! less comparison.
   //
   //! Returns only true if 100% sure about the less fact.
-  bool operator>(const bound& b) const
+  bool operator>(const _Bound_& b) const
   {
     return !(*this < b || *this == b);
 #if 0
@@ -190,7 +190,7 @@ struct bound
   //! less comparison.
   //
   //! Returns only true if 100% sure about the less fact.
-  bool operator>=(const bound& b) const
+  bool operator>=(const _Bound_& b) const
   {
     return (*this > b || *this == b);
   }
@@ -198,13 +198,13 @@ struct bound
   //! less comparison.
   //
   //! Returns only true if 100% sure about the less fact.
-  bool operator<=(const bound& b) const
+  bool operator<=(const _Bound_& b) const
   {
     return (*this < b || *this == b);
   }
 
   //! copy constructor
-  bound& operator()(const bound& b)
+  _Bound_& operator()(const _Bound_& b)
   {
     abs = b.abs;
     n = b.n;
@@ -214,7 +214,7 @@ struct bound
   }
 
   //! copy constructor
-  bound& copy(const bound& b)
+  _Bound_& copy(const _Bound_& b)
   {
     abs = b.abs;
     n = b.n;
@@ -223,7 +223,7 @@ struct bound
     return *this;
   }
 
-  //! escape lower bound to String
+  //! escape lower _Bound_ to String
   string toStr() const
   {
     ostringstream out;
@@ -231,7 +231,7 @@ struct bound
       out << o;
     else
     {
-      out << n << "/" << d << "*p";
+      (n != d)? out << n << "/" << d << "*p" : out << "p";
       (o >= 0) ? out << "+" : out << "";
       out << o;
     }
@@ -243,15 +243,15 @@ struct bound
 class PSet : public NodeFact
 {
 protected:
-  bound lb_;    //!< represents the lower bound of the process set
-  bound hb_;    //!< represents the higher bound of the proccess set
+  _Bound_ lb_;    //!< represents the lower _Bound_ of the process set
+  _Bound_ hb_;    //!< represents the higher _Bound_ of the proccess set
   bool empty_;  //!< true if the set is empty
 
 public:
   /**
-   * @brief PSet Constructor with empty flag, lower and upper bound as arguments.
+   * @brief PSet Constructor with empty flag, lower and upper _Bound_ as arguments.
    */
-  PSet(bool empty, bound lb, bound hb);
+  PSet(bool empty, _Bound_ lb, _Bound_ hb);
 
   /**
    * @brief Default PSet Constructor which sets the empty flag and sets
@@ -273,25 +273,47 @@ public:
    */
   PSet(const PSet& that);
 //=======================================================================================
-  //! Returns True if PSet is empty.
+  /**
+   * @brief Returns True if PSet is empty.
+   */
   bool isEmpty() const;
-  //! Returns true if lower bound is an absolute value.
+
+  /**
+   * @brief Returns true if lower bound is an absolute value.
+   */
   bool isLbAbs() const;
-  //! Returns true if upper bound is an absolute value.
+
+  /**
+   * @brief Returns true if upper bound is an absolute value.
+   */
   bool isHbAbs() const;
-  //!
+
+  /**
+   * @brief Returns true if the process set contains an absolute number of Processes.
+   */
   bool isAbsProcNumber() const;
-  //!
+
+  /**
+   * @brief Returns absolute number of processes.
+   * @return 0 if empty, absolute value if the process set contains an absolute number
+   *         of Processes, -1 if not.
+   */
   int getAbsNumProc() const;
-  //! returns true if the minimum bound of the Set is 0
+
+  /**
+   * @brief Returns true if the minimum bound of the Set is 0.
+   */
   bool isMinBound() const;
-  //! returns true if the maximum bound of the Set is number of processes - 1
+
+  /**
+   * @brief Returns true if the maximum bound of the Set is number of processes - 1.
+   */
   bool isMaxBound() const;
 
   /**
    * @brief Returns true if 100% sure about the decision that bound is within the PSet.
    */
-  bool contains(const bound& b) const;
+  bool contains(const _Bound_& b) const;
 
   /**
    * @brief Returns true if this PSet contains the elements of that PSet.
@@ -328,26 +350,67 @@ public:
    */
   std::vector<PSet> remove(const PSet& that) const;
 //=======================================================================================
-  bound getHBound() const;
-  bound getLBound() const;
-  void setLBound(const bound& b);
-  void setHBound(const bound& b);
-//=======================================================================================
-  //!
+  /**
+   * @brief Get function for upper bound.
+   */
+  _Bound_ getHBound() const;
+
+  /**
+   * @brief Get function for lower bound of process set.
+   */
+  _Bound_ getLBound() const;
+
+  /**
+   * @brief Sets lower bound to bound b.
+   * @param b New value for the lower bound.
+   */
+  void setLBound(const _Bound_& b);
+
+  /**
+   * @brief Sets upper bound to bound b.
+   * @param b New value for the upper bound of the process set.
+   */
+  void setHBound(const _Bound_& b);
+
+  //=======================================================================================
+  /**
+   * @brief
+   */
   bool operator==(const PSet& that) const;
-  //!
+
+  /**
+   * @brief
+   */
   bool operator!=(const PSet& that) const;
-  //! checks if this->lb_ < that->lb_
+
+  /**
+   * @brief Checks if this->lb_ < that->lb_.
+   */
   bool operator<(const PSet& that) const;
-  //! checks if this->hb_ > that->hb_
+
+  /**
+   * @brief Checks if this->hb_ > that->hb_.
+   */
   bool operator>(const PSet& that) const;
-  //!
+
+  /**
+   * @brief
+   */
   bool operator<=(const PSet& that) const;
-  //!
+
+  /**
+   * @brief
+   */
   bool operator>=(const PSet& that) const;
-  //! copy from that to this
+
+  /**
+   * @brief Copy from that to this.
+   */
   bool operator=(const PSet& that);
-  //! hard copy from that to this
+
+  /**
+   * @brief Hard copy from that to this.
+   */
   bool copy(const PSet& that);
 
 //=======================================================================================
@@ -356,7 +419,7 @@ public:
   // ************************
 
   /**
-   *
+   * @brief
    */
   NodeFact* copy() const;
 

@@ -3,8 +3,6 @@
 #include "rankAnalysis/FinestPSetGranularity.h"
 #include "rankMpiCallList/CallAnalysis.h"
 
-int rankMpiCallListTestDebugLevel = 2;
-
 //=======================================================================================
 int main(int argc, char *argv[])
 {
@@ -45,6 +43,8 @@ int main(int argc, char *argv[])
   CallAnalysis callA = CallAnalysis(project, &rankA, &fpsg, &loopA);
   ContextInsensitiveInterProceduralDataflow callInter(&callA, graph);
   callInter.runAnalysis();
+
+  std::cerr << "\n#######\n\n";
 
   return 0;
 }

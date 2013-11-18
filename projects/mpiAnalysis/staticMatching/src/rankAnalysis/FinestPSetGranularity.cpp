@@ -50,16 +50,16 @@ void FinestPSetGranularity::buildPSets()
   {
     std::set<_Directed_Bound_>::const_iterator db = all_bounds_.begin();
     if(db->is_lb_)
-      all_psets_.push_back(PSet(false, db->b_, bound(false, 1, 1, 0)));
+      all_psets_.push_back(PSet(false, db->b_, _Bound_(false, 1, 1, 0)));
     else
-      all_psets_.push_back(PSet(false, bound(true, 1, 1, 0), db->b_));
+      all_psets_.push_back(PSet(false, _Bound_(true, 1, 1, 0), db->b_));
   }
   else
   {
     std::set<_Directed_Bound_>::const_iterator it = all_bounds_.begin();
 
-    bound lb, hb;
-    hb = bound(true, 1, 1, -1);
+    _Bound_ lb, hb;
+    hb = _Bound_(true, 1, 1, -1);
     while(it != all_bounds_.end())
     {
       if(it->is_lb_)
@@ -81,7 +81,7 @@ void FinestPSetGranularity::buildPSets()
         }
       }
       else
-        hb = bound(false, 1, 1, 0);
+        hb = _Bound_(false, 1, 1, 0);
 
       all_psets_.push_back(PSet(false, lb, hb));
     }

@@ -5,7 +5,6 @@
  *      Author: stoero
  */
 
-
 #include "loopAnalysis/LoopLattice.h"
 
 extern int loopAnalysisDebugLevel;
@@ -90,14 +89,15 @@ _Loop_Count_ LoopLattice::getCountProduct() const
 bool LoopLattice::hasEqualList(
                        const std::list<std::pair<SgNode*, _Loop_Count_> > l) const
 {
-  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator this_it
-                                                        = this->loop_count_list_.begin();
+  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator this_it;
   std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator that_it;
   bool found;
-  for(; this_it != this->loop_count_list_.end(); ++this_it)
+  for(that_it = l.begin(); that_it != l.end(); ++ that_it)
   {
     found = false;
-    for(that_it = l.begin(); that_it != l.end(); ++ that_it)
+    for(this_it = this->loop_count_list_.begin();
+        this_it != this->loop_count_list_.end();
+        ++this_it)
     {
       if(this_it->first == that_it->first)
       {
@@ -155,26 +155,46 @@ std::list<std::pair<SgNode*, _Loop_Count_> > LoopLattice::getFalseList() const
 // Required definition of pure virtual functions.
 // **********************************************
 //=======================================================================================
-bool LoopLattice::meetUpdate(Lattice* X)  //TODO
+bool LoopLattice::meetUpdate(Lattice* X)
 {
   if(loopAnalysisDebugLevel >= 1)
-    std::cerr << "\n MEEET UPDATE";
+    std::cerr << "\n MEEET UPDATE LOOP LATTICE";
   LoopLattice* that = dynamic_cast<LoopLattice*>(X);
+
+  if(loopAnalysisDebugLevel >= 3)
+  {
+    std::cerr << "\n   This LOOP: " << this->toStringForDebugging();
+    std::cerr << "\n   That LOOP: " << that->toStringForDebugging();
+  }
 
   if(that->isHandledLoop())
   {
+    if(loopAnalysisDebugLevel >= 3)
+      std::cerr << "\n    That is handled loop.";
     if(that->getFalseSuccessor() == this->getNode()) //MpiUtils functionalities
     {
       if(this->hasEqualList(that->getFalseList()))
+      {
+        if(loopAnalysisDebugLevel >= 3)
+          std::cerr << "\n   Meet update Returns FALSE!";
         return false;
+      }
       this->copyList(that->getFalseList());
+      if(loopAnalysisDebugLevel >= 3)
+        std::cerr << "\n This UPDATED: " << this->toStringForDebugging();
       return true;
     }
   }
 
   if(this->hasEqualList(that))
+  {
+    if(loopAnalysisDebugLevel >= 3)
+      std::cerr << "\n Equal List, Return = False.";
     return false;
+  }
   this->copyList(that);
+  if(loopAnalysisDebugLevel >= 3)
+    std::cerr << "\n This UPDATED: " << this->toStringForDebugging();
   return true;
 }
 
@@ -232,7 +252,7 @@ string LoopLattice::toString() const
 {
   ostringstream outs;
   _Loop_Count_ lcs = this->getCountProduct();
-  outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
+  outs << "Loop Lattice Count = " << lcs.toStr() << " {";
   std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
   for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     outs << it->second.toStr();
@@ -245,13 +265,13 @@ string LoopLattice::toStringForDebugging() const  //TODO some node info
 {
   ostringstream outs;
   _Loop_Count_ lcs = this->getCountProduct();
-    outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
+    outs << "Loop Lattice Count = " << lcs.toStr() << " {";
     std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
     for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
     {
-      outs << "<" << it->first->class_name() << ">"
-           << " @line=" << it->first->get_startOfConstruct()->get_line() << "\n"
-           << "Loop Count" << it->second.toStr();
+      outs << "[<" << it->first->class_name() << ">"
+           << " @line=" << it->first->get_startOfConstruct()->get_line()
+           << " Loop Count" << it->second.toStr() << "]";
     }
     outs << "}";
   return outs.str();

@@ -45,9 +45,10 @@ bool LoopAnalysis::SetMPICommunicationInfo()
       // look at MPI_Comm_size's second argument and record that it depends on the number of processes
       if(isSgAddressOfOp(arg1) && varID::isValidVarExp(isSgAddressOfOp(arg1)->get_operand()))
       {
-        std::cerr << "\nSet Size Variable to ........ ";
+
         size_var_ = SgExpr2Var(isSgAddressOfOp(arg1)->get_operand());
-        std::cerr << size_var_ << ".......";
+        if(loopAnalysisDebugLevel >= 1)
+          std::cerr << "\nSet Size Variable to: " << size_var_ << "  ";
         found_size = true;
       }
       else
@@ -81,6 +82,8 @@ void LoopAnalysis::genInitState(const Function& func, const DataflowNode& n,
     l->isHandledLoop(true);
     l->setFalseSuccessor(MpiUtils::getFalseSuccessor(n));
     l->setLoopCount(getLoopBound(n));
+    if(loopAnalysisDebugLevel >= 1)
+      std::cerr << "\n genInitState loop bound: " << l->getLoopCount().toStr();
   }
   initLattices.push_back(l);
 }
@@ -89,12 +92,21 @@ void LoopAnalysis::genInitState(const Function& func, const DataflowNode& n,
 bool LoopAnalysis::transfer(const Function& func, const DataflowNode& n,
                             NodeState& state, const std::vector<Lattice*>& dfInfo)
 {
+  bool modified = false;
   if(loopAnalysisDebugLevel >= 1)
     std::cerr << "\n                          LOOP  TRANSFER";
+
   LoopLattice* ll = dynamic_cast<LoopLattice*>(*(dfInfo.begin()));
 
+  if(loopAnalysisDebugLevel >= 3)
+    std::cerr << "\n               LoopBeforeTransfer: " << ll->toStringForDebugging();
+
   if(ll->isHandledLoop())
-    return ll->addLoopCount(ll->getNode(), ll->getLoopCount());
+  {
+    modified = ll->addLoopCount(ll->getNode(), ll->getLoopCount());
+    if(loopAnalysisDebugLevel >= 3)
+      std::cerr << "\n        ll->addLoopCount: " << ll->getLoopCount().toStr();
+  }
 //  if(loopAnalysisDebugLevel >= 1)
 //    std::cerr << "          ELSE\n";
 //  if(loopAnalysisDebugLevel >= 3)
@@ -106,7 +118,10 @@ bool LoopAnalysis::transfer(const Function& func, const DataflowNode& n,
 //  }
 //  else
 //    return lattice->pushPSetToOutSet();
-  return false;
+
+  if(loopAnalysisDebugLevel >= 3)
+    std::cerr << "\n      LoopAfterTransfer: " << ll->toStringForDebugging();
+  return modified;
 }
 
 //=======================================================================================
@@ -125,9 +140,9 @@ _Loop_Count_ LoopAnalysis::getLoopBound(const DataflowNode& n) const
   SgForInitStatement* for_init_stmt = fstmt->get_for_init_stmt();
   SgStatement* condition = fstmt->get_test();
   SgExpression* increment = fstmt->get_increment();
-  bound init_bound;
-  bound end_bound;
-  bound loop_bound;
+  _Bound_ init_bound;
+  _Bound_ end_bound;
+  _Bound_ loop_bound;
 
   //get bound(init_value)
   if(for_init_stmt == NULL || condition == NULL || increment ==NULL)
@@ -145,7 +160,7 @@ _Loop_Count_ LoopAnalysis::getLoopBound(const DataflowNode& n) const
   SgExpression* rhs = isSgBinaryOp(tmp_stmt)->get_rhs_operand();
   if(!(isSgVarRefExp(lhs) && isSgIntVal(rhs)))
     return _Loop_Count_(true);
-  init_bound = bound(isSgIntVal(rhs)->get_value());
+  init_bound = _Bound_(isSgIntVal(rhs)->get_value());
 
   //get end_value
   if(!isSgExprStatement(condition))
@@ -155,19 +170,21 @@ _Loop_Count_ LoopAnalysis::getLoopBound(const DataflowNode& n) const
   tmp_stmt = isSgNotEqualOp(isSgExprStatement(condition)->get_expression());
   rhs = isSgBinaryOp(tmp_stmt)->get_rhs_operand();
   if(isSgIntVal(rhs) )
-    end_bound = bound(isSgIntVal(rhs)->get_value());
+    end_bound = _Bound_(isSgIntVal(rhs)->get_value());
   else if(isSgVarRefExp(rhs) &&
       isSgVarRefExp(rhs)->get_symbol()->get_name().getString() == this->size_var_.str())
-    end_bound = bound(false,1,1,0);
+    end_bound = _Bound_(false,1,1,0);
   else
     return _Loop_Count_(true);
 
   //get increment
   //if(increment == ++)
-    // bound = end_value - init_value
+    // _Bound_ = end_value - init_value
   //if(increment == --)
-    // bound = init_value - end_value
-  std::cerr << end_bound.toStr() << "  " << init_bound.toStr();
+    // _Bound_ = init_value - end_value
+  if(loopAnalysisDebugLevel >= 2)
+    std::cerr << "\n End bound: " << end_bound.toStr()
+              << "  Init bound: " << init_bound.toStr();
 
   if(isSgPlusPlusOp(increment))
     loop_bound = end_bound - init_bound;
@@ -176,9 +193,16 @@ _Loop_Count_ LoopAnalysis::getLoopBound(const DataflowNode& n) const
   else
     return _Loop_Count_(true);
 
+  _Loop_Count_ lc_temp = _Loop_Count_(false,loop_bound);
+
   if(loopAnalysisDebugLevel >= 2)
-      std::cerr << "   Returning loop_bound  " << loop_bound.toStr();
-  return _Loop_Count_(false,loop_bound);
+  {
+      std::cerr << "   Returning loop_bound: " << loop_bound.toStr();
+      std::cerr << "   contained by Loop_CountXX: " << lc_temp.toStr();
+      std::cerr << " " << lc_temp.count_.toStr();
+  }
+
+  return lc_temp;
 }
 
 //=======================================================================================

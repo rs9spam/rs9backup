@@ -127,8 +127,8 @@ void RankAnalysis::genInitState(const Function& func, const DataflowNode& n,
 
   if(MpiUtils::isMPIInit(n))
   {
-    bound lb = bound(true,1,1,0);
-    bound hb = bound(false,1,1,-1);
+    _Bound_ lb = _Bound_(true,1,1,0);
+    _Bound_ hb = _Bound_(false,1,1,-1);
     PSet ps = PSet(false,lb,hb);
     l->setPset(ps);
 //    std::cerr << "\n$$$$$ Found MPI_Init node! $$$$$";
@@ -153,7 +153,7 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
       std::cerr << "   IF\n";
     if(rrankAnalysisDebugLevel >= 2)
       std::cerr << lattice->str();
-    //find out bound
+    //find out _Bound_
     bool modified = false;
     SgNode* node = n.getNode();
     SgNode* cond_node;

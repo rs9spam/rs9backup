@@ -1,8 +1,12 @@
 #include "rose.h"
+#include "constPropAnalysis/constantPropagationAnalysis.h"
+#include "liveDeadVarAnalysis.h"
 #include "loopAnalysis/loopAnalysis.h"
+#include "mpiCFG/mpiCFG.h"
 
-int loopAnalysisTestDebugLevel = 0;
+int loopAnalysisTestDebugLevel = 3;
 
+//=======================================================================================
 bool cfgNodeFilter (CFGNode cfgn)
 {
   SgNode * node = cfgn.getNode();
@@ -13,7 +17,7 @@ bool cfgNodeFilter (CFGNode cfgn)
   else
     ret = (cfgn.isInteresting());
 
-  if(loopAnalysisTestDebugLevel > 1)
+  if(loopAnalysisTestDebugLevel > 3)
   {
     if(ret)
       std::cerr << "#";
@@ -24,6 +28,7 @@ bool cfgNodeFilter (CFGNode cfgn)
   return ret;
 }
 
+//=======================================================================================
 class EvaluationPass: public UnstructuredPassIntraAnalysis
 {
 public:
@@ -43,12 +48,13 @@ public:
     void visit(const Function& func, const DataflowNode& n, NodeState& state);
 };
 
+//=======================================================================================
 void EvaluationPass::visit(const Function& func, const DataflowNode& n, NodeState& state)
 {
   bool visit_fail = false;
   if(state.isInitialized(la))
   {
-    std::vector<Lattice*> lv = state.getLatticeAbove(la);
+    std::vector<Lattice*> lv = state.getLatticeBelow(la);
     if(lv.empty())
     {
       std::cerr << "ERROR lattice vector == NULL!\n";
@@ -65,7 +71,8 @@ void EvaluationPass::visit(const Function& func, const DataflowNode& n, NodeStat
     if(loop_lattice != NULL)
     {
       if(loopAnalysisTestDebugLevel > 1)
-        std::cerr << "\n" << loop_lattice->toString();
+        std::cerr << "\n\n Node: " << n.toStringForDebugging();
+        std::cerr << "  " << loop_lattice->toStringForDebugging();
       failure = failure || false;
       this->pass++;
     }
@@ -82,46 +89,89 @@ void EvaluationPass::visit(const Function& func, const DataflowNode& n, NodeStat
   }
 }
 
+//=======================================================================================
 int main(int argc, char *argv[])
 {
   // Build the AST used by ROSE
   SgProject* project = frontend(argc,argv);
   ROSE_ASSERT (project != NULL);
 
-  std::cerr << "\n## Init Analysis";
+  std::cerr << "\n## Init Analysis:";
   initAnalysis(project);
 //  analysisDebugLevel=0;
   Dbg::init("LOOP ANALYSIS TEST", ".", "index.html");
-  loopAnalysisDebugLevel = 10;
+  loopAnalysisDebugLevel = 0;
 
-  std::cerr << "\n## Call Graph Builder";
+  std::cerr << "\n## Call Graph Builder;";
   CallGraphBuilder cgb(project);
   cgb.buildCallGraph();
   SgIncidenceDirectedGraph* graph = cgb.getGraph();
 
-  std::cerr << "\n## Before Loop Analysis";
+  std::cerr << "\n## Before Loop Analysis:";
   LoopAnalysis loopA(project);
-  std::cerr << "\n## Before Inter_Procedura_Loop_Analysis initialization";
   ContextInsensitiveInterProceduralDataflow loopInter(&loopA, graph);
-  std::cerr << "\n## Before Rank Analysis RUN ...";
   loopInter.runAnalysis();
-  std::cerr << "\n## Finished analysis.\n\n";
 
-  EvaluationPass ep(&loopA, cfgNodeFilter);
-  UnstructuredPassInterAnalysis upia_ep(ep);
-  upia_ep.runAnalysis();
+  if(loopAnalysisTestDebugLevel >= 1)
+  {
+    std::cerr << "\n## Evaluation Pass:";
+    EvaluationPass ep(&loopA, cfgNodeFilter);
+    UnstructuredPassInterAnalysis upia_ep(ep);
+    upia_ep.runAnalysis();
 
-  if(ep.failure)
-  {
-      std::cerr << "\nTEST FAIL\n";
-      std::cerr << ep.fail << " lattice was not defined at certain nodes.\n";
-      std::cerr << ep.pass << " Passe!\n";
+    if(ep.failure)
+    {
+        std::cerr << "\nTEST FAIL\n";
+        std::cerr << ep.fail << " lattice was not defined at certain nodes.\n";
+        std::cerr << ep.pass << " Passe!\n";
+    }
+    else
+    {
+        std::cerr << "\nTEST PASSED\n";
+        std::cerr << ep.pass << " nodes passed successfully!\n";
+        std::cerr << ep.fail << " Fails!\n";
+    }
   }
-  else
-  {
-      std::cerr << "\nTEST PASSED\n";
-      std::cerr << ep.pass << " nodes passed successfully!\n";
-      std::cerr << ep.fail << " Fails!\n";
-  }
+
+  liveDeadAnalysisDebugLevel = 0;
+  analysisDebugLevel = 0;
+//  rrankAnalysisDebugLevel = 2;
+
+  std::cerr << "\n## LiveDeadVars Analysis";
+  LiveDeadVarsAnalysis ldva(project);
+  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+  ciipd_ldva.runAnalysis();
+
+  std::cerr << "\n## Constant Propagation Analysis";
+  ConstantPropagationAnalysis cpA(&ldva);
+  ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
+  cpInter.runAnalysis();
+
+//  std::cerr << "\n## Before Rank Analysis:";
+//  RankAnalysis rankA(project);
+//  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
+//  rankInter.runAnalysis();
+//  const std::vector<DataflowNode> radfn = rankA.getDFNodes();
+  RankAnalysis* rankA = NULL;
+  CallAnalysis* callA = NULL;
+
+  ///////////////////////////////////////////////////////////////////////////////////////
+  std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
+  MpiAnalysis::MPICFG mpi_cfg((SgNode*) project,
+                              (IntraProceduralDataflow*) &cpA,
+                              (RankAnalysis*)rankA,
+                              (LoopAnalysis*)&loopA,
+                              (CallAnalysis*)callA,
+                              true);
+  mpi_cfg.build();
+
+//  std::cerr << "\n## Successfully created MPI_ICFG";
+//  mpi_cfg.setRankInfo(radfn);
+//  mpi_cfg.mpicfgToDot();
+
+  std::cerr << "\n## Dumped out the full MPI_CFG Communication Graph as";
+  mpi_cfg.mpiCommToDot();
+  std::cerr << "\n## Dumped out MPI communication as Dot graph\n";
+
   return 0;
 }

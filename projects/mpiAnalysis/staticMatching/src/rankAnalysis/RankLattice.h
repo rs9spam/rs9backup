@@ -12,6 +12,8 @@
 #include "latticeFull.h"
 #include "rankAnalysis/pSet.h"
 
+extern int rrankAnalysisDebugLevel;
+
 //! The process set container holds all process sets of a node plus additional
 //! information about the process set.
 //
@@ -245,10 +247,10 @@ public:
 #if 0
   //!
   //!
-  std::vector<PSet> splitPSetsAtBound(bool lowbound, bound b);                          //verify
+  std::vector<PSet> splitPSetsAtBound(bool lowbound, _Bound_ b);                          //verify
   //!
   //!
-  std::vector<PSet> splitPSetsAtValue(bool val_set, bound b);                           //verify
+  std::vector<PSet> splitPSetsAtValue(bool val_set, _Bound_ b);                           //verify
   //!
   //!
   std::vector<PSet> computeTrueSet(const DataflowNode& n);                              //verify

@@ -6,7 +6,7 @@
  * PSet *
  ***********/
 //=======================================================================================
-PSet::PSet(bool empty, bound lb, bound hb)
+PSet::PSet(bool empty, _Bound_ lb, _Bound_ hb)
 {
   this->empty_ = empty;
   this->lb_ = lb;
@@ -17,16 +17,16 @@ PSet::PSet(bool empty, bound lb, bound hb)
 PSet::PSet()
 {
   this->empty_ = true;
-  this->lb_ = bound();
-  this->hb_ = bound();
+  this->lb_ = _Bound_();
+  this->hb_ = _Bound_();
 }
 
 //=======================================================================================
 PSet::PSet(bool empty, int value)
 {
   this->empty_ = empty;
-  lb_ = bound(true, 1, 1, value);
-  hb_ = bound(true, 1, 1, value);
+  lb_ = _Bound_(true, 1, 1, value);
+  hb_ = _Bound_(true, 1, 1, value);
 }
 
 //=======================================================================================
@@ -88,7 +88,7 @@ bool PSet::isMaxBound() const
 }
 
 //=======================================================================================
-bool PSet::contains(const bound& b) const
+bool PSet::contains(const _Bound_& b) const
 {
   return (b <= hb_ && b >= lb_);
 }
@@ -104,7 +104,7 @@ bool PSet::interleavesOrTouches(const PSet& that) const
 {
   //false if
   //either p1_hb < p2_lb - 1  or p2_hb < p1_lb -1
-  // compare if higher bound of p_set1 is smaller than lower bound -1 of p_set2
+  // compare if higher _Bound_ of p_set1 is smaller than lower _Bound_ -1 of p_set2
 //  if(p_set1.compareHbSmallerLb(p_set2) ||
 //     p_set2.compareHbSmallerLb(p_set1))
   if((this->hb_ >= (that.lb_ - 1)) && ((this->lb_ - 1) <= that.hb_))
@@ -123,7 +123,7 @@ PSet PSet::combineWith(const PSet& that) const
   if(!(this->interleavesOrTouches(that)))
     return *this;
   bool empty = false;
-  bound lb, hb;
+  _Bound_ lb, hb;
 
   lb = (*this < that) ? this->getLBound() : that.getLBound();
   hb = (*this > that) ? this->getHBound() : that.getHBound();
@@ -136,8 +136,8 @@ PSet PSet::intersectWith(const PSet& that) const
 {
   if(this->empty_ || that.empty_)
     return PSet();
-  bound lb = (this->lb_ < that.lb_) ? that.lb_ : this->lb_;
-  bound hb = (this->hb_ < that.hb_) ? this->hb_ : that.hb_;
+  _Bound_ lb = (this->lb_ < that.lb_) ? that.lb_ : this->lb_;
+  _Bound_ hb = (this->hb_ < that.hb_) ? this->hb_ : that.hb_;
 
   return (lb <= hb) ? PSet(false, lb, hb) : PSet();
 }
@@ -162,16 +162,16 @@ std::vector<PSet> PSet::remove(const PSet& that) const
 }
 
 //=======================================================================================
-bound PSet::getLBound() const { return lb_; }
+_Bound_ PSet::getLBound() const { return lb_; }
 
 //=======================================================================================
-bound PSet::getHBound() const { return hb_; }
+_Bound_ PSet::getHBound() const { return hb_; }
 
 //=======================================================================================
-void PSet::setLBound(const bound& b) { this->lb_(b); }
+void PSet::setLBound(const _Bound_& b) { this->lb_(b); }
 
 //=======================================================================================
-void PSet::setHBound(const bound& b) { this->hb_(b); }
+void PSet::setHBound(const _Bound_& b) { this->hb_(b); }
 
 //=======================================================================================
 bool PSet::operator==(const PSet& that) const
@@ -190,7 +190,7 @@ bool PSet::operator!=(const PSet& that) const
 }
 
 //=======================================================================================
-//consider, if no bound is Abs, return the offset from the biggest
+//consider, if no _Bound_ is Abs, return the offset from the biggest
 bool PSet::operator<(const PSet& that) const
 {
   return lb_ < that.lb_;

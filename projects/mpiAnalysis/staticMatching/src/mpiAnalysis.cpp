@@ -25,6 +25,7 @@
 #include "constPropAnalysis/constantPropagationAnalysis.h"
 #include "liveDeadVarAnalysis.h"
 #include "rankAnalysis/rankAnalysis.h"
+#include "loopAnalysis/loopAnalysis.h"
 
 using namespace std;
 
@@ -99,7 +100,7 @@ int main(int argc, char *argv[])
 
 
 
-  MpiAnalysis::MPICFG mpi_cfg(project, NULL, &rankA);
+  MpiAnalysis::MPICFG mpi_cfg(project, NULL, &rankA, NULL, NULL, true);
 //  MpiAnalysis::MPICFG mpi_cfg(main_def, &cpA);
   //Builds the full mpi_cfg and performs all possible pruning steps.
   mpi_cfg.build();

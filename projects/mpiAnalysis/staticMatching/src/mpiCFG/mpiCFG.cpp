@@ -1,16 +1,17 @@
-using namespace std;
-
 #include "sage3basic.h"
 #include "CallGraph.h"
 #include "DataflowCFG.h"
 #include "mpiCFG/mpiCFG.h"
 #include "rankAnalysis/RankLattice.h"
+#include "liveDeadVarAnalysis.h"
+#include "constPropAnalysis/constantPropagationAnalysis.h"
 #include <boost/foreach.hpp>
 #include <vector>
 #include <set>
 
 namespace MpiAnalysis
 {
+int MpiCFGDebugLevel = 1;
 #if 0
 =====================================================================================
 void MPICFG::addMPIEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
@@ -34,16 +35,6 @@ void MPICFG::build(){
     start_ = main_def;
   }
   buildMPIICFG();
-}
-
-//===================================================================================
-void MPICFG::buildCFG()
-{
-  CFG::buildFullCFG();
-
-  // Use buildFilteredCFG from MPICFG since the one from CFG pushes wrong CFG nodes
-  // to all_nodes node collection.
-//  MPICFG::buildFilteredCFG();
 }
 
 //===================================================================================
@@ -72,9 +63,23 @@ void MPICFG::buildMPIICFG()
 }
 
 //===================================================================================
+void MPICFG::buildCFG()
+{
+  if(this->is_filtered_)
+    MPICFG::buildFilteredCFG();
+  else
+    MPICFG::buildFullCFG();
+
+  // Use buildFilteredCFG from MPICFG since the one from CFG pushes wrong CFG nodes
+  // to all_nodes node collection.
+}
+
+//===================================================================================
 void MPICFG::buildFullCFG()
 {
-	std::set<VirtualCFG::CFGNode> explored;
+  CFG::buildFullCFG();
+#if 0
+  std::set<VirtualCFG::CFGNode> explored;
 	graph_ = new SgIncidenceDirectedGraph;
 	ClassHierarchyWrapper classHierarchy(SageInterface::getProject());
 
@@ -82,6 +87,7 @@ void MPICFG::buildFullCFG()
 	start = start_->cfgForBeginning();
 
 	buildCFG(start, all_nodes_, explored, &classHierarchy);
+#endif
 }
 
 //===================================================================================
@@ -122,8 +128,9 @@ void MPICFG::buildFilteredCFG()
                                        p.first.getIndex())] = p.second;
 }
 
+#if 0
 //===================================================================================
-void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
+void MPICFG::addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result) {
   // Makes a CFG edge, adding appropriate labels
   SgNode* fromNode = from.getNode();
   unsigned int fromIndex = from.getIndex();
@@ -229,22 +236,21 @@ void MPICFG::buildCFG(CFGNode n,
     BOOST_FOREACH(const CFGNode& target, targets)
         buildCFG(target, all_nodes, explored, classHierarchy);
 }
+#endif
 
 //===================================================================================
 void MPICFG::buildMPISend()
 {
-  BOOST_FOREACH( pair_n p, all_nodes_) {
-    if(isSgFunctionCallExp((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 1)  && MpiUtils::isMPISend((p.first).getNode())) {
-      if( ((p.first).isInteresting())  && MpiUtils::isMPISend((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 0)  && MpiUtils::isMPISend((p.first).getNode())) {
-        //mpi_send_nodes_[p.first] = p.second;
+  BOOST_FOREACH( pair_n p, all_nodes_)
+  {
+    if(isSgFunctionCallExp((p.first).getNode()))
+    {
+      if( ((p.first).isInteresting())  && MpiUtils::isMPISend((p.first).getNode()))
+      {
         pair_n new_p = pair<VirtualCFG::CFGNode, SgGraphNode*>(p.first,p.second);
         mpi_send_nodes_.insert(new_p);
-        //TODO: remove debug output
-//        std::cerr << endl
-//                  << "SIZE MPI SEND NODES: "
-//                  << mpi_send_nodes_.size();
+        if(MpiCFGDebugLevel >= 3)
+          std::cerr << "\nSIZE MPI SEND NODES: " << mpi_send_nodes_.size();
       }
     }
   }
@@ -253,16 +259,15 @@ void MPICFG::buildMPISend()
 //===================================================================================
 void MPICFG::buildMPIRecv()
 {
-  BOOST_FOREACH( pair_n p, all_nodes_) {
-    if(isSgFunctionCallExp((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 1)  && MpiUtils::isMPIRecv((p.first).getNode())) {
-      if( ((p.first).isInteresting()) && MpiUtils::isMPIRecv((p.first).getNode())) {
-//      if( ((p.first).getIndex() == 0) && MpiUtils::isMPIRecv((p.first).getNode())) {
+  BOOST_FOREACH( pair_n p, all_nodes_)
+  {
+    if(isSgFunctionCallExp((p.first).getNode()))
+    {
+      if( ((p.first).isInteresting()) && MpiUtils::isMPIRecv((p.first).getNode()))
+      {
         mpi_recv_nodes_[p.first] = p.second;
-        //TODO: remove debug output
-//        std::cerr << endl
-//                  << "SIZE MPI RECV NODES: "
-//                  << mpi_recv_nodes_.size();
+        if(MpiCFGDebugLevel >= 3)
+          std::cerr << "\nSIZE MPI RECV NODES: " << mpi_recv_nodes_.size();
       }
     }
   }
@@ -1010,25 +1015,6 @@ const CFGNode MPICFG::getCFGNode(SgGraphNode* node)
 }
 
 //===================================================================================
-void MPICFG::setRankInfo(std::vector<DataflowNode> rn)
-{
-  this->ra_nodes_ = rn;
-}
-
-//===================================================================================
-void MPICFG::setRankInfo(RankAnalysis* ra)
-{
-  this->rank_analysis_ = ra;
-}
-
-//===================================================================================
-void MPICFG::setRankInfo(RankAnalysis* ra, std::vector<DataflowNode> rn)
-{
-  this->rank_analysis_ = ra;
-  this->ra_nodes_ = rn;
-}
-
-//===================================================================================
 void MPICFG::mpicfgToDot()
 {
   SgFunctionDefinition* main_def;
@@ -1250,6 +1236,8 @@ void MPICFG::mpiPrintEdge(std::ostream& o,
     << "];\n";
 }
 
+
+#if 0
 //===================================================================================//:TODO
 std::vector<SgDirectedGraphEdge*> mpiOutEdges(SgGraphNode* node)
 {
@@ -1283,5 +1271,6 @@ std::vector<SgDirectedGraphEdge*> mpiInEdges(SgGraphNode* node)
   }
   return std::vector<SgDirectedGraphEdge*>(mpi_in_edges.begin(), mpi_in_edges.end());
 }
+#endif /*#if 0*/
 
-} // end of namespace MpiAnalysis
+} /* end of namespace MpiAnalysis */
