@@ -628,7 +628,8 @@ std::vector<PSet> RankLattice::remove(const PSet& ps) const
 //=======================================================================================
 bool RankLattice::meetUpdate(Lattice* X)
 {
-  std::cerr << "\n MEEET UPDATE";
+  if(rrankAnalysisDebugLevel >= 1)
+    std::cerr << "\n MEEET UPDATE";
   RankLattice* that = dynamic_cast<RankLattice*>(X);
 
   if(that->isDepCondScope())

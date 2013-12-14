@@ -2,33 +2,19 @@
 #define MPI_CFG_H
 
 #include "staticCFG.h"
-//#include "CallGraph.h"
-//#include "dataflow.h"
+#include "CallGraph.h"
+#include "dataflow.h"
 #include "mpiUtils/mpiUtils.h"
+#include "mpiCFG/MpiCommunication.h"
 #include "latticeFull.h"
 
-#if 0
-#include "liveDeadVarAnalysis.h"
-#include "constPropAnalysis/constantPropagationAnalysis.h"
-#include "rankAnalysis/rankAnalysis.h"
-#endif /*if 0*/
-//class SgIncidenceDirectedGraph;
-//class SgGraphNode;
-//class SgDirectedGraphEdge;
+class SgIncidenceDirectedGraph;
+class SgGraphNode;
+class SgDirectedGraphEdge;
+class ConstantPropagationAnalysis;
 class LoopAnalysis;
 class RankAnalysis;
 class CallAnalysis;
-
-
-#define MPI_NUM_SEND_EXP 6
-#define MPI_NUM_RECV_EXP 7
-#define MPI_VAR_ARG 1l
-#define MPI_SIZE_ARG 2
-#define MPI_TYPE_ARG 3
-#define MPI_SOURCE_ARG 4
-#define MPI_TAG_ARG 5
-#define MPI_COMM_WORLD_ARG 6
-#define MPI_STATUS_ARG 7
 
 namespace MpiAnalysis
 {
@@ -62,44 +48,35 @@ protected:
   /// Pointer to the whole project.
   SgNode* mpi_project_;
 
-  /// Pointer to Constant Propagation Analysis information.
-  IntraProceduralDataflow* const_prop_;
-  /// Pointer to Rank Analysis information.
-//  RankAnalysis* rank_analysis_;
-  IntraProceduralDataflow* rank_analysis_;
-  /// Pointer to Loop Analysis information.
-//  LoopAnalysis* loop_analysis_;
-  IntraProceduralDataflow* loop_analysis_;
-  /// Pointer to Call Analysis class.
-//  CallAnalysis* call_analysis_;
-  IntraProceduralDataflow* call_analysis_;
+  /**
+   *
+   */
+  MpiCommunication mpic_;
 
-  //TODO: This is just an auxiliary nodes vectore since I can't access the real nodes.
+  /// Pointer to Constant Propagation Analysis information.
+//  IntraProceduralDataflow* const_prop_;
+  ConstantPropagationAnalysis* const_prop_;
+  /// Pointer to Rank Analysis information.
+  RankAnalysis* rank_analysis_;
+//  IntraProceduralDataflow* rank_analysis_;
+  /// Pointer to Loop Analysis information.
+  LoopAnalysis* loop_analysis_;
+//  IntraProceduralDataflow* loop_analysis_;
+  /// Pointer to Call Analysis class.
+  CallAnalysis* call_analysis_;
+//  IntraProceduralDataflow* call_analysis_;
+
+#if 0
+  //This is just an auxiliary nodes vectore since I can't access the real nodes.
   /**
    * @brief Auxiliary vector with DataflowNodes to avoid creating new DataFlowNodes
    *        from SgGraph nodes which result in a Segmentation fault.
    */
+  std::vector<DataflowNode> cpa_nodes_;
   std::vector<DataflowNode> ra_nodes_;
-
-  /**
-   * @brief All SgGraphNodes which perform some sort of MPI_Send.
-   */
-  std::map<CFGNode, SgGraphNode*> mpi_send_nodes_;
-
-  /**
-   * @brief All SgGraphNodes which perform some sort of MPI_Recv.
-   */
-  std::map<CFGNode, SgGraphNode*> mpi_recv_nodes_;
-
-  /**
-   * @brief All MPI_Barrier nodes.
-   */
-  std::map<CFGNode, SgGraphNode*> mpi_barrier_nodes_;
-
-  /**
-   * @brief ALL possible MPI connections between MPI_Send and MPI_Recv
-   */
-  std::multimap<CFGNode, CFGNode> mpi_connections_;
+  std::vector<DataflwoNode> la_nodes_;
+  std::vector<DataflwoNode> cla_nodes_;
+#endif
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 public:
@@ -115,7 +92,7 @@ public:
    * Valid node types are SgProject, SgStatement, SgExpression, SgInitializedName
    */
   MPICFG(SgNode* node,
-         IntraProceduralDataflow* const_prop,
+         ConstantPropagationAnalysis* const_prop,
          RankAnalysis* rank_analysis,
          LoopAnalysis* loop_analysis,
          CallAnalysis* call_analysis,
@@ -125,9 +102,12 @@ public:
               is_filtered_ = is_filtered;
               start_ = node;
               const_prop_ = const_prop;
-              rank_analysis_ = (IntraProceduralDataflow*)rank_analysis;
-              loop_analysis_ = (IntraProceduralDataflow*)loop_analysis;
-              call_analysis_ = (IntraProceduralDataflow*)call_analysis;
+//              rank_analysis_ = (IntraProceduralDataflow*)rank_analysis;
+//              loop_analysis_ = (IntraProceduralDataflow*)loop_analysis;
+//              call_analysis_ = (IntraProceduralDataflow*)call_analysis;
+              rank_analysis_ = rank_analysis;
+              loop_analysis_ = loop_analysis;
+              call_analysis_ = call_analysis;
     }
 
   //Entry to build the full MPIICFG
@@ -160,40 +140,6 @@ protected:
    */
   virtual void buildFilteredCFG();
 
-#if 0
-  /**
-   * @brief
-   * @param n
-   * @param all_nodes
-   * @param expolred
-   * @param classHierarchy
-   */
-  virtual void buildCFG(CFGNode n,
-                std::map<CFGNode, SgGraphNode*>& all_nodes,
-                std::set<CFGNode>& explored,
-                ClassHierarchyWrapper* classHierarchy);
-
-  /**
-   * @brief
-   */
-  void addEdge(CFGNode from, CFGNode to, std::vector<CFGEdge>& result);
-#endif
-
-  /**
-   * @brief Find all MPI_Send function calls and insert the pairs into mpiSendNodes.
-   */
-  void buildMPISend();
-
-  /**
-   * @brief Find all MPI_Recv function calls and insert the pairs into mpiRecvNodes.
-   */
-  void buildMPIRecv();
-
-  /**
-   * @brief Fills a Map with all possible match sets.
-   */
-  bool buildFullMPIMatchSet();
-
   /**
    * @brief Add all possible MPI Edges to MPI_ICFG.
    */
@@ -206,89 +152,6 @@ protected:
   void removeMPIEdge(SgDirectedGraphEdge* edge);
 
 
-
-
-
-
-
-
-
-
-  /**
-   * @brief Refines mpi_communications_ whit constant not matching function parameters.
-   *
-   * Removes communication Edges with non matching constant data types.
-   * Removes communication Edges with non matching constant data size.
-   * Removes communication Edges with non matching constant communication tag.
-   * Removes communication Edges with non matching constant communication world.
-   */
-  void refineConstantMatch();
-
-  /**
-   * @brief Compares the data type of the MPI_Send and MPI_Recv node.
-   * @return Returns false only if constant Type Arguments do not match.
-   */
-  bool constTypeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
-
-  /**
-   * @brief Compares the data type of the MPI_Send and MPI_Recv node.
-   * @return False only if constant Size Arguments are not valid for a match.
-   */
-  bool constSizeMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
-
-  /**
-   * @brief Compares the data type of the MPI_Send and MPI_Recv node.
-   * @return False only if constant Tag Arguments do not match.
-   */
-  bool constTagMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
-
-  /**
-   * @brief Compares the data type of the MPI_Send and MPI_Recv node.
-   * @return False only if constant MPICommWorld Arguments do not match.
-   */
-  bool constCommWorldMatch(SgGraphNode* send_node, SgGraphNode* recv_node);
-
-  /**
-   * @brief
-   */
-  bool hasConstValue(SgNode* node);
-
-  /**
-   * @brief
-   */
-  int getConstPropValue(SgNode* node);
-
-  /**
-   * @brief Returns the corresponding SGNode from SgGraphNode
-   */
-  const CFGNode getCFGNode(SgGraphNode* node);
-
-  /**
-   *
-   */
-  void mpiPrintDotHeader(std::ostream& o);
-
-  /**
-   *
-   */
-  void mpiPrintNodes(std::ostream& o);
-
-  /**
-   *
-   */
-  void mpiPrintEdges(std::ostream& o);
-
-  /**
-   *
-   */
-  void mpiPrintNode(std::ostream& o, const VirtualCFG::CFGNode& node);
-
-  /**
-   *
-   */
-  void mpiPrintEdge(std::ostream& o,
-                    const VirtualCFG::CFGNode& x,
-                    const VirtualCFG::CFGNode& y);
 
 public:
 //=======================================================================================
@@ -303,57 +166,63 @@ public:
   /**
    * @brief Returns the graph.
    */
-  SgIncidenceDirectedGraph* getGraph() {return graph_;};
+  SgIncidenceDirectedGraph* getGraph() { return graph_; };
 
   /**
    *
    */
-  SgGraphNode* getGraphNode(CFGNode n) {return all_nodes_[n];};
+  SgGraphNode* getGraphNode(CFGNode n) { return all_nodes_[n]; };
 
+#if 0
   /**
-   * @brief Returns the MPI connection std::multimap.
-   * @return
-   *
-   * This const getter function returns a std::multimap<CFGNode, CFGNode>
-   * which represents the MPI connections.
+   * @brief Sets the DataflowNodes vector for accessing rank-, constant propagation-,
+   *        loop- and callList-Analysis.
    */
-  std::multimap<CFGNode, CFGNode> getMpiConnections() const
-    {return this->mpi_connections_;};
-
+  void setDataflowNodesCPA(const std::vector<DataflowNode> dfnv)
+    { cpa_nodes_.assign(dfnv.begin(), dfnv.end()); };
+#endif
 //=======================================================================================
   //RANK RELATED FUNCTIONS
+#if 0
   /**
    * @brief
    */
-  void setRankInfo(std::vector<DataflowNode> rn) {ra_nodes_ = rn;};
+  void setDataflowNodesRA(const std::vector<DataflowNode> rn) {ra_nodes_ = rn;};
+#endif
 
   /**
    * @brief Sets the RankAnalysis pointer.
    */
-  void setRankInfo(RankAnalysis* ra) {rank_analysis_ = (IntraProceduralDataflow*)ra;};
+  void setRankInfo(RankAnalysis* ra) {rank_analysis_ = (RankAnalysis*)ra;};
+//  void setRankInfo(RankAnalysis* ra) {rank_analysis_ = (IntraProceduralDataflow*)ra;};
 
+#if 0
   /**
    * @brief
    */
   void setRankInfo(RankAnalysis* ra, std::vector<DataflowNode> rn)
-    {ra_nodes_ = rn; rank_analysis_ = (IntraProceduralDataflow*)ra;};
+    { ra_nodes_ = rn; rank_analysis_ = (IntraProceduralDataflow*)ra; };
+#endif
 
   /**
    * @brief
    */
-  string getRankPSetString(SgGraphNode* node);
+  string getRankPSetString(const CFGNode& node) const;
 
   /**
    * @brief
    */
-  bool hasRankInfo(SgGraphNode* node);
+  bool hasRankInfo(const CFGNode& node) const;
 
 //=======================================================================================
   //LOOP RELATED FUNCTIONS
 
 
 
-
+//=======================================================================================
+//=======================================================================================
+//              DEBUG OUTPUT -- PRINT FUNCTIONS
+//=======================================================================================
 
 protected:
   ///////////////////////////////////////////////////////////////////////////////////////
@@ -399,11 +268,6 @@ public:
    * @brief Output the possible communications to a Dot graph and generates file name.
    */
   void mpiCommToDot();
-
-  /**
-   * @brief Output the possible communications to a Dot graph.
-   */
-  void mpiCommToDot(const std::string& file_name);
 
 };
 

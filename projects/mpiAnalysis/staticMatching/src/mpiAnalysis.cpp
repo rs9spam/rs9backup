@@ -2,32 +2,25 @@
 // inter_procedural control flow graphs
 // Extended to build an mpi_cfg
 
-//#include <string>
-//#include <list>
-//#include <sstream>
-//#include <iostream>
-//#include <fstream>
-//#include <algorithm>
-//#include <map>
-//#include <ctype.h>
-//#include <boost/algorithm/string.hpp>
-//#include "genericDataflowCommon.h"
-//#include "VirtualCFGIterator.h"
-//#include "cfgUtils.h"
-//#include "CallGraphTraverse.h"
-//#include "analysisCommon.h"
-//#include "analysis.h"
-//#include "dataflow.h"
-//#include "latticeFull.h"
-//#include "printAnalysisStates.h"
+#define CONSTANTPROPANALYSIS 1
+#define CALLLISTANALYSIS 1
+
+#if CALLLISTANALYSIS
+#define LOOPANALYSIS 1
+#define RANKANALYSIS 1
+#else
+#define RANKANALYSIS 1
+#define LOOPANALYSIS 1
+#endif
+
 #include "rose.h"
 #include "mpiCFG/mpiCFG.h"
 #include "constPropAnalysis/constantPropagationAnalysis.h"
 #include "liveDeadVarAnalysis.h"
 #include "rankAnalysis/rankAnalysis.h"
 #include "loopAnalysis/loopAnalysis.h"
-
-using namespace std;
+#include "rankAnalysis/FinestPSetGranularity.h"
+#include "rankMpiCallList/CallAnalysis.h"
 
 int main(int argc, char *argv[])
 {
@@ -36,9 +29,8 @@ int main(int argc, char *argv[])
   ROSE_ASSERT (project != NULL);
 
 //  TimingPerformance timer ("ROSE:");
-//  generateDOT( *project);
 
-  /////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
   //Perform inter_procedural constant propagation in order to gain additional information
   //src/midend/programAnalysis/gernericDataflow/analysis/analysisCommne.h
   //initializes CFGUtils, builds Call graph as an SgIncidenceDirected Graph
@@ -46,11 +38,16 @@ int main(int argc, char *argv[])
 
   std::cerr << "\n## Init Analysis";
   initAnalysis(project);
-//  mpiUtils::initMPIUtils(project);
   Dbg::init("Live dead variable analysis Test", ".", "index.html");
-  liveDeadAnalysisDebugLevel = 0;
+
   analysisDebugLevel = 0;
-  rrankAnalysisDebugLevel = 2;
+
+  liveDeadAnalysisDebugLevel = 0;
+  rrankAnalysisDebugLevel = 0;
+  loopAnalysisDebugLevel = 0;
+  mpiCallAnalysisDebugLevel = 0;
+
+//  MpiAnalysis::MpiCFGDebugLevel = 0;
 
   std::cerr << "\n## Call Graph Builder";
   // prepare call graph
@@ -59,63 +56,94 @@ int main(int argc, char *argv[])
   SgIncidenceDirectedGraph* graph = cgb.getGraph();
 
 
-  std::cerr << "\n## Before Rank Analysis";
-  RankAnalysis rankA(project);
-//  rankA.setProject(project);
-//  ROSE_ASSERT (rankA.setSizeAndRank(project));
-//  rankA.setRankAnalysis(&rankA); // don't do that!
-  std::cerr << "\n## Before Rank Analysis Inter initialisation";
-  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
-  std::cerr << "\n## Before Rank Analysis RUN ...";
-  rankInter.runAnalysis();
-  //#####################################################################################
-  const std::vector<DataflowNode> radfn = rankA.getDFNodes();
-
+//#######################################################################################
+#if CONSTANTPROPANALYSIS
   std::cerr << "\n## LiveDeadVars Analysis";
   LiveDeadVarsAnalysis ldva(project);
   UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   ciipd_ldva.runAnalysis();
-
   std::cerr << "\n## Constant Propagation Analysis";
-  //use constant propagation within the
-  //context insensitive inter-procedural data-flow driver
   ConstantPropagationAnalysis cpA(&ldva);
-//  ConstantPropagationAnalysis cpA(NULL);
   ContextInsensitiveInterProceduralDataflow cpInter(&cpA, graph);
   cpInter.runAnalysis();
+#endif
+//#######################################################################################
+#if RANKANALYSIS
+  std::cerr << "\n## Before Rank Analysis";
+  RankAnalysis rankA(project);
+  std::cerr << "\n## Before Rank Analysis Inter initialisation";
+  ContextInsensitiveInterProceduralDataflow rankInter(&rankA, graph);
+  std::cerr << "\n## Before Rank Analysis RUN ...";
+  rankInter.runAnalysis();
+#endif
+//#######################################################################################
+#if LOOPANALYSIS
+  std::cerr << "\n## Before Loop Analysis";
+  LoopAnalysis loopA(project);
+  ContextInsensitiveInterProceduralDataflow loopInter(&loopA, graph);
+  loopInter.runAnalysis();
+#endif
+//#######################################################################################
+#if CALLLISTANALYSIS
+  std::cerr << "\n## Finest Process Set Granularity Analysis";
+  FinestPSetGranularity fpsg(&rankA);
+  UnstructuredPassInterAnalysis upia_fpsg(fpsg);
+  upia_fpsg.runAnalysis();
+  fpsg.buildPSets();
+  std::cerr << "\n## " << fpsg.toStr();
+
+  std::cerr << "\n## Rank Call List Analysis";
+  CallAnalysis callA = CallAnalysis(project, &rankA, &fpsg, &loopA);
+  ContextInsensitiveInterProceduralDataflow callInter(&callA, graph);
+  callInter.runAnalysis();
+  std::cerr << callA.getPSetCallList().toStringForDebugging();
+#endif
+//#######################################################################################
+
+
+#if 0
+  ///////////////////////////////////////////////////////////////////////////////////////
+  std::cerr << "\n## Going to create MPI_ICFG changes today 4th of December";
+
+  MpiAnalysis::MPICFG mpi_cfg(project,
+#if CONSTANTPROPANALYSIS
+                              &cpA,
+#else
+                              NULL,
+#endif
+#if RANKANALYSIS
+                              &rankA,
+#else
+                              NULL,
+#endif
+#if LOOPANALYSIS
+                              &loopA,
+#else
+                              NULL,
+#endif
+#if CALLLISTANALYSIS
+                              &callA,
+#else
+                              NULL,
+#endif
+                              true);
 
   ///////////////////////////////////////////////////////////////////////////////////////
-  std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
-  //Find main function
-//  SgFunctionDeclaration* main_def_decl = SageInterface::findMain(project);
-//  ROSE_ASSERT (main_def_decl != NULL);
-//  SgFunctionDefinition* main_def = main_def_decl->get_definition();
-//  ROSE_ASSERT (main_def != NULL);
-
-  //Initializes the mpi_cfg class
-//  MpiAnalysis::MPICFG mpi_cfg(project, &cpA, &rankA);
-
-
-
-
-
-
-  MpiAnalysis::MPICFG mpi_cfg(project, NULL, &rankA, NULL, NULL, true);
-//  MpiAnalysis::MPICFG mpi_cfg(main_def, &cpA);
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
   //Builds the full mpi_cfg and performs all possible pruning steps.
   mpi_cfg.build();
-
-
   std::cerr << "\n## Successfully created MPI_ICFG";
   // Dump out the full MPI_CFG
-  mpi_cfg.setRankInfo(radfn);
   mpi_cfg.mpicfgToDot();
-
   std::cerr << "\n## Dumped out the full MPI_CFG as";
   mpi_cfg.mpiCommToDot();
-  std::cerr << "\n## Dumped out MPI communication as Dot graph\n";
+  std::cerr << "\n## Dumped out MPI communication as Dot graph";
+//  mpi_cfg.callListToDot();
+  std::cerr << "\n## Dumped out MPI callListToDot\n";
   // Call functions to refine the graph.......
 //  TimingPerformance timer ("ROSE: end");
-
+#endif
+  std::cerr << "\n";
   return 0;
 }

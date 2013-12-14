@@ -16,21 +16,34 @@ extern int mpiCallAnalysisDebugLevel;
 //=======================================================================================
 CallLattice::CallLattice()
 {
-  this->pset_lists_.clear();
+//  std::cerr << "\nCallLattice: Empty constructor. THIS: " << this;
+//  this->pset_lists_.clear();
+//  this->pset_lists1_.clear();
+//  this->predecessors_list_.clear();
 }
 
 //=======================================================================================
 CallLattice::CallLattice( int v )
 {
-  this->pset_lists_.clear();
+//  std::cerr << "\nCallLattice: Constructor with Argument. THIS: " << this;
+//  this->pset_lists_.clear();
+//  this->pset_lists1_.clear();
+//  this->predecessors_list_.clear();
 }
 
 //=======================================================================================
 CallLattice::CallLattice (const CallLattice& that)
 {
+//  std::cerr << "\nCallLattice: Copy Constructor. THIS: " << this << " That: " << &that;
+
   this->pset_lists_.clear();
   this->pset_lists_.insert(that.pset_lists_.begin(),
                            that.pset_lists_.end());
+
+//  this->pset_lists1_.clear();
+//  this->predecessors_list_.clear();
+
+  //TODO: do I need the predecessor lists? //////////////////////////////////////////////////////////////////////////////////////////
 }
 
 //=======================================================================================
@@ -51,9 +64,14 @@ bool CallLattice::isSubsetOf(const _Call_List_& this_list,
   that_it = that_list.calls_.begin();
   while(this_it != this_list.calls_.end() && that_it != that_list.calls_.end())
   {
-    if(this_it != that_it)
+    if(this_it->first != that_it->first || this_it->second != that_it->second)
       return false;
+    ++this_it;
+    ++that_it;
   }
+
+  // if this list is not at the end and that list is,
+  // then that_list is a subset of this_list
   if(this_it != this_list.calls_.end() && that_it == that_list.calls_.end())
     return false;
   return true;
@@ -65,10 +83,12 @@ bool CallLattice::haveEqualCalls(const _Call_List_& this_list,
 {
   if(this_list.calls_.size() != that_list.calls_.size())
     return false;
-  return isSubsetOf(this_list, that_list);
+  if(!isSubsetOf(this_list, that_list))
+    return false;
+  return this_list.unease_middle_ == that_list.unease_middle_;
 }
 
-//=======================================================================================
+//======================================================================================= TODO: DEBUG OUTPUT (remove)
 int CallLattice::commonStartLength(const _Call_List_& this_list,
                                    const _Call_List_& that_list) const
 {
@@ -79,8 +99,15 @@ int CallLattice::commonStartLength(const _Call_List_& this_list,
   that_it = that_list.calls_.begin();
   while(this_it != this_list.calls_.end() && that_it != that_list.calls_.end())
   {
-    if(this_it != that_it)
+    if(this_it->first != that_it->first || this_it->second != that_it->second)
+    {
+      std::cerr << "\nCallLattice::commonStartLenght: "
+                 << "Two Elements in list are not equal at "
+                 << count + 1;
       return count;
+    }
+    ++this_it;
+    ++that_it;
     ++count;
   }
   return count;
@@ -140,6 +167,75 @@ bool CallLattice::add(const PSet pset,
   return modified;
 }
 
+//=======================================================================================
+bool CallLattice::comparePSetLists(const std::map<PSet, _Call_List_>& m1,
+                                   const std::map<PSet, _Call_List_>& m2) const
+{
+  std::map<PSet, _Call_List_>::const_iterator it1 = m1.begin();
+  std::map<PSet, _Call_List_>::const_iterator it2 = m2.begin();
+  while(it1 != m1.end() && it2 != m2.end())
+  {
+    if(it1->first != it2->first || it1->second != it2->second)
+      return false;
+    ++it1;
+    ++it2;
+  }
+  if(it1 != m1.end() || it2 != m2.end())
+    return false;
+
+  return true;
+}
+
+//=======================================================================================
+void CallLattice::mergeCallLists(_Call_List_& l1, const _Call_List_& l2) const
+{
+  if(!haveEqualCalls(l1, l2))
+  {
+    if(l1.calls_.empty() && l1.unease_middle_ == -1)//most likely case.
+    {
+//      if(!l2.calls_.empty() || l2.unease_middle_ != -1)
+        l1 = l2;
+    }
+    else
+    {
+      //TODO: maybe also check for loops here, since it is not so clear if this is
+      //      the case, if the last element of that is not a loop....
+      if(isSubsetOf(l1, l2))
+      {
+        l1 = _Call_List_(l2.calls_, std::max(l1.unease_middle_, l2.unease_middle_));
+      }
+      //TODO, should actually cut the whole thing here.
+      else if(isSubsetOf(l2, l1))
+      {
+        if(l1.unease_middle_ != l2.unease_middle_)
+          l1.unease_middle_ = l2.unease_middle_;
+      }
+      else
+      {
+        int min = commonStartLength(l1, l2);
+        if(l1.unease_middle_ != -1)
+          min = std::min(min, l1.unease_middle_);
+        if(l2.unease_middle_ != -1)
+          min = std::min(min, l2.unease_middle_);
+        l1 = _Call_List_(getElementsFromBeginning(l1, min), min);
+      }
+    }
+  }
+  else
+  {
+    //TODO:
+    //Is it important to check for the unease_middle_?
+  }
+}
+
+//=======================================================================================
+void CallLattice::emptyPSetsCallLists()
+{
+  std::map<PSet, _Call_List_>::iterator it;
+  for(it = pset_lists_.begin(); it != pset_lists_.end(); ++it)
+    it->second = _Call_List_();
+}
+
 // **********************************************
 // Required definition of pure virtual functions.
 // **********************************************
@@ -148,12 +244,117 @@ bool CallLattice::add(const PSet pset,
 //=======================================================================================
 bool CallLattice::meetUpdate(Lattice* X)  //TODO: check this function
 {
+  CallLattice* that = dynamic_cast<CallLattice*>(X);
+
+  if(!comparePSetLists(that->pset_lists_, predecessors_list_[X]))
+  {
+    predecessors_list_[X] = that->pset_lists_;
+
+    std::map<PSet, _Call_List_> temp_pset_lists;
+    temp_pset_lists.insert(pset_lists_.begin(), pset_lists_.end());
+    emptyPSetsCallLists();
+
+    std::map<Lattice*, std::map<PSet, _Call_List_> >::const_iterator l_it;
+    for(l_it = predecessors_list_.begin(); l_it != predecessors_list_.end(); ++l_it)
+    {
+      std::map<PSet, _Call_List_>::iterator it;
+      for(it = this->pset_lists_.begin(); it != this->pset_lists_.end(); ++it)
+        mergeCallLists(it->second, (l_it->second).at(it->first));
+    }
+    if(comparePSetLists(temp_pset_lists, pset_lists_))
+      return false;
+    else
+      return true;
+  }
+
+  return false;
+
+#if 0
+  if(mpiCallAnalysisDebugLevel >= 1)
+    std::cerr << "\n\n\n\n MEEET UPDATE Call Lattice:";
+
+  CallLattice* that = dynamic_cast<CallLattice*>(X);
+
+//  if(mpiCallAnalysisDebugLevel >= 3)
+//    std::cerr << "\nOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
+//              << "\nTHIS:\n" << this->toStringForDebugging()
+//              << "\nTHAT:\n" << that->toStringForDebugging()
+//              << "\nPred: " << printPsets(predecessors_list_[X]);
+
+//  std::map<PSet, _Call_List_>::iterator temp_it;
+//  bool that_is_not_empty = false;
+//  for(temp_it = that->pset_lists_.begin(); temp_it != that->pset_lists_.end(); ++temp_it)
+//  {
+//    if(!(temp_it->second.calls_.empty()))
+//      that_is_not_empty = true;
+//  }
+
+  if(!comparePSetLists(that->pset_lists_, predecessors_list_[X]))
+  {
+    if(mpiCallAnalysisDebugLevel >= 3)
+      std::cerr <<  "   THIS != THAT";
+
+//    if(mpiCallAnalysisDebugLevel >= 3)
+//      std::cerr << "\nOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
+//                << "\nTHIS:\n" << this->toStringForDebugging()
+//                << "\nTHAT:\n" << that->toStringForDebugging();
+
+    //add that->pset_list_ to pred_list_[X]
+    predecessors_list_[X] = that->pset_lists_;
+
+    if(mpiCallAnalysisDebugLevel >= 3)
+      std::cerr << "\n new Pred: " << printPsets(predecessors_list_[X]);
+
+    //create temp copy of existing pset_
+    std::map<PSet, _Call_List_> temp_pset_lists;
+    temp_pset_lists.insert(pset_lists_.begin(), pset_lists_.end());
+
+//    pset_lists_.clear(); //////THAT WAS A BIG PROBLEM....
+    emptyPSetsCallLists();
+
+    //merge the whole predecessor list to a cleared pset_lists_
+    std::map<Lattice*, std::map<PSet, _Call_List_> >::const_iterator l_it;
+
+//    if(that_is_not_empty)
+//      std::cerr << "\n8888  PREDECESSORS_LIST SIZE: " << predecessors_list_.size();
+
+    for(l_it = predecessors_list_.begin(); l_it != predecessors_list_.end(); ++l_it)
+    {
+      std::map<PSet, _Call_List_>::iterator it;
+
+//      if(that_is_not_empty)
+//        std::cerr << "\n99999 Process set List from loop: " << printPsets(l_it->second);
+
+      for(it = this->pset_lists_.begin(); it != this->pset_lists_.end(); ++it)
+        mergeCallLists(it->second, (l_it->second).at(it->first));
+    }
+    //check with the temp copy of the pset_lists_ if changes happened
+    if(comparePSetLists(temp_pset_lists, pset_lists_))
+      return false;
+    else
+//    {
+//      std::cerr << "                       RETURN True!";
+//      std::cerr << "\n new THIS:\n" << this->toStringForDebugging();
+      return true;
+//    }
+  }
+
+//  std::cerr << "                       RETURN FALSE Default!";
+  return false;
+#endif
+
+#if 0
   if(mpiCallAnalysisDebugLevel >= 1)
     std::cerr << "\n MEEET UPDATE Call Lattice:";
   bool modified = false;
 
   CallLattice* that = dynamic_cast<CallLattice*>(X);
   std::map<PSet, _Call_List_>::iterator it;
+
+  if(mpiCallAnalysisDebugLevel >= 3)
+    std::cerr << "\nOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
+              << "\nTHIS:\n" << this->toStringForDebugging()
+              << "\nTHAT:\n" << that->toStringForDebugging();
 
   for(it = this->pset_lists_.begin(); it != this->pset_lists_.end(); ++it)
   {
@@ -205,7 +406,12 @@ bool CallLattice::meetUpdate(Lattice* X)  //TODO: check this function
     }
   }
 
+  if(mpiCallAnalysisDebugLevel >= 3)
+    std::cerr << "\nNEW THIS: modified = " << (modified? "true" : "false")
+              << this->toStringForDebugging();
+
   return modified;
+#endif
 }
 
 //=======================================================================================
@@ -226,14 +432,31 @@ Lattice* CallLattice::copy() const
 void CallLattice::copy(/*const*/ Lattice* X)
 {
   CallLattice* that = dynamic_cast<CallLattice*>(X);
-  this->pset_lists_.insert(that->pset_lists_.begin(), that->pset_lists_.end());
+  std::map<PSet,_Call_List_>::const_iterator it;
+  for(it = that->pset_lists_.begin(); it != that->pset_lists_.end(); ++it)
+    this->pset_lists_[it->first] = it->second;
 }
 
 //=======================================================================================
 bool CallLattice::operator==(Lattice* X) /*const*/  //TODO
 {
   CallLattice* that = dynamic_cast<CallLattice*>(X);
-  return this->pset_lists_ == that->pset_lists_;
+  std::map<PSet,_Call_List_>::const_iterator this_it = this->pset_lists_.begin();
+  std::map<PSet,_Call_List_>::const_iterator that_it = that->pset_lists_.begin();
+  while(this_it != this->pset_lists_.end() && that_it != that->pset_lists_.end())
+  {
+    if(this_it->first != that_it->first || this_it->second != that_it->second)
+      return false;
+    else
+    {
+      ++this_it;
+      ++that_it;
+    }
+  }
+  if(this_it == this->pset_lists_.end() && that_it == that->pset_lists_.end())
+    return true;
+  return false;
+//  return this->pset_lists_ == that->pset_lists_;
 }
 
 //=======================================================================================
@@ -248,30 +471,41 @@ string CallLattice::str(string indent)
 string CallLattice::toString() const
 {
   ostringstream outs;
-  //TODO:
-//  _Loop_Count_ lcs = this->getCountProduct();
-//  outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
-//  std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
-//  for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
-//    outs << it->second.toStr();
-//  outs << "}";
+  outs << toStringForDebugging();
   return outs.str();
 }
 
 //=======================================================================================
-string CallLattice::toStringForDebugging() const  //TODO some node info
+string CallLattice::toStringForDebugging() const
 {
   ostringstream outs;
-  //TODO:
-//  _Loop_Count_ lcs = this->getCountProduct();
-//    outs << "\nLoop Lattice Count = " << lcs.toStr() << " {";
-//    std::list<std::pair<SgNode*, _Loop_Count_> >::const_iterator it;
-//    for(it = this->loop_count_list_.begin(); it != this->loop_count_list_.end(); ++it)
-//    {
-//      outs << "<" << it->first->class_name() << ">"
-//           << " @line=" << it->first->get_startOfConstruct()->get_line() << "\n"
-//           << "Loop Count" << it->second.toStr();
-//    }
-//    outs << "}";
+  outs << "\n######################################################################"
+       << "\n###############      MPI CALL LIST LATTICE     #######################"
+       << "\n######################################################################";
+  outs << printPsets(pset_lists_);
+//  std::map<PSet,_Call_List_>::const_iterator it;
+//  for(it = pset_lists_.begin(); it != pset_lists_.end(); ++it)
+//  {
+//    outs << "\n======================================================================"
+//         << "\nPSET: " << it->first.toString()
+//         << it->second.toStr();
+//  }
+//  outs << "\n======================================================================";
+  outs << "\n######################################################################";
+  return outs.str();
+}
+
+//=======================================================================================
+string CallLattice::printPsets(const std::map<PSet, _Call_List_>& m) const
+{
+  ostringstream outs;
+  std::map<PSet,_Call_List_>::const_iterator it;
+  for(it = m.begin(); it != m.end(); ++it)
+  {
+    outs << "\n======================================================================"
+         << "\nPSET: " << it->first.toString()
+         << it->second.toStr();
+  }
+  outs << "\n======================================================================";
   return outs.str();
 }

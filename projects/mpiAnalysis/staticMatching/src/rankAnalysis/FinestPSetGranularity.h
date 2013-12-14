@@ -120,32 +120,61 @@ struct _Directed_Bound_
 class FinestPSetGranularity: public UnstructuredPassIntraAnalysis
 {
 protected:
-  //!
+  /**
+   * @brief Mandatory RankAnalysis with information about process sets at every node.
+   */
   RankAnalysis* ra_;
-  //!
+
+  /**
+   * @brief Set of all bounds which occur in ra_.
+   */
   std::set<_Directed_Bound_> all_bounds_;
-  //!
+
+  /**
+   * @brief Final vector containing all processes in minimum granularity process sets.
+   */
   std::vector<PSet> all_psets_;
 
 public:
-  //!
+  /**
+   * @brief Constructor setting the required rank analysis and clearing the bounds and
+   *        process sets vector.
+   */
   FinestPSetGranularity(RankAnalysis* that_ra) : ra_(that_ra)
   {
     all_bounds_.clear();
     all_psets_.clear();
   }
 
-  //!
+  /**
+   * @brief Iterate over all process sets of the data flow node and insert the bounds
+   *        into the all_bounds_ vector.
+   * @param func is the function that contains the DataflwoNodes n.
+   * @param n DataflowNode to be visited.
+   * @param state NodeState of the DataflowNode n.
+   */
   void visit(const Function& func, const DataflowNode& n, NodeState& state);
 
-  //!
+  /**
+   * @brief
+   */
   void buildPSets();
 
-  //!
-  std::vector<PSet> getPSets();
+  /**
+   * @brief
+   */
+  std::vector<PSet> getPSets() { return all_psets_; };
 
-  //!
+  /**
+   * @brief
+   */
   string toStr() const;
 
+protected:
+  /**
+   * @brief iterates over the PSet and fills possible gaps with the missing processes
+   *        combined into consecutive process sets.
+   */
+  void fillWithMissingProcesses();
 };
 #endif

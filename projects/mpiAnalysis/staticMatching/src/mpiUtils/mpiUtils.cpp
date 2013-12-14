@@ -27,20 +27,30 @@ bool isMPIFunctionCall(const DataflowNode& n)
 //=======================================================================================
 bool isMPIInit(const DataflowNode& n)
 {
-  //TODO: Remove
-  std::cerr << "DEBUG";
   return MpiUtils::isMPIInit(n.getNode());
 }
 
 //=======================================================================================
 bool isMPIInit(const SgNode* node)
 {
-  string name;
-  if( isSgFunctionRefExp(node)) {
-    name = isSgFunctionRefExp(node)->get_symbol()->get_name();
-    if(name == "MPI_Init")
+  if( isSgFunctionRefExp(node))
+    if((isSgFunctionRefExp(node)->get_symbol()->get_name()) == "MPI_Init")
       return true;
-  }
+  return false;
+}
+
+//=======================================================================================
+bool isMPIFinalize(const DataflowNode& n)
+{
+  return MpiUtils::isMPIFinalize(n.getNode());
+}
+
+//=======================================================================================
+bool isMPIFinalize(const SgNode* node)
+{
+  if( isSgFunctionRefExp(node))
+    if((isSgFunctionRefExp(node)->get_symbol()->get_name()) == "MPI_Finalize")
+      return true;
   return false;
 }
 
@@ -150,6 +160,92 @@ SgNode* getFalseSuccessor(const DataflowNode& n)
       break;
     }
   return false_target;
+}
+
+//===================================================================================
+SgExpression* getExpAt(const SgExpressionPtrList& argsptr ,unsigned int arg_nr)
+{
+  if(argsptr.size() >= arg_nr)
+    return argsptr[arg_nr-1];
+  ROSE_ASSERT(!"\nMpi function SgExpressionPtrList doesn't contain argument.");
+  return NULL;
+}
+
+#if 0
+//===================================================================================
+SgExpression* getExpAt(const SgExpressionPtrList& argsptr ,unsigned int arg_nr)
+{
+  SgExpressionPtrList::iterator exp_iter;
+
+  if(argsptr.size() >= arg_nr)
+  {
+    exp_iter = argsptr.begin();
+
+    for(unsigned int i=1; i < arg_nr; i++)
+      exp_iter++;
+
+    SgExpression* exp = (*exp_iter);
+    return exp;
+  }
+  return NULL;
+}
+#endif
+
+
+//===================================================================================
+//DEBRECATED
+DataflowNode* findDataflowNode_(const CFGNode& n, std::vector<DataflowNode> dfvec)
+{
+  return MpiUtils::findDataflowNode_(n.getNode(), n.getIndex(), dfvec);
+}
+
+//===================================================================================
+//DEBRECATED
+DataflowNode* findDataflowNode_(const SgNode* n, unsigned int idx,
+                               std::vector<DataflowNode> dfvec)
+{
+  std::vector<DataflowNode>::iterator it;
+  for(it = dfvec.begin(); it != dfvec.end(); ++it)
+    if(n == it->getNode() && idx == it->getIndex())
+      return &(*it);
+  return NULL;
+}
+
+//===================================================================================
+bool hasDataflowNode(const CFGNode& n, std::vector<DataflowNode> dfvec)
+{
+  return MpiUtils::hasDataflowNode(n.getNode(), n.getIndex(), dfvec);
+}
+
+//===================================================================================
+bool hasDataflowNode(const SgNode* n, unsigned int idx,
+                     std::vector<DataflowNode> dfvec)
+{
+  std::vector<DataflowNode>::iterator it;
+  for(it = dfvec.begin(); it != dfvec.end(); ++it)
+    if(n == it->getNode() && idx == it->getIndex())
+      return true;
+  return false;
+}
+
+//===================================================================================
+DataflowNode getDataflowNode(const CFGNode& n, std::vector<DataflowNode> dfvec)
+{
+  return MpiUtils::getDataflowNode(n.getNode(), n.getIndex(), dfvec);
+}
+
+//===================================================================================
+DataflowNode getDataflowNode(/*const*/ SgNode* n, unsigned int idx,
+                     std::vector<DataflowNode> dfvec)
+{
+  CFGNode cfg = CFGNode(n, idx);
+  DataflowNode dfn = DataflowNode(cfg, defaultFilter);
+
+  std::vector<DataflowNode>::iterator it;
+  for(it = dfvec.begin(); it != dfvec.end(); ++it)
+    if(n == it->getNode() && idx == it->getIndex())
+      dfn = *it;
+  return dfn;
 }
 
 } /*end namespcae mpiUtils*/

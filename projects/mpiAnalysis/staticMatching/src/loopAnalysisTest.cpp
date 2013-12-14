@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
   SgProject* project = frontend(argc,argv);
   ROSE_ASSERT (project != NULL);
 
-  std::cerr << "\n## Init Analysis:";
+  std::cerr << "\n## Init Analysis: ...";
   initAnalysis(project);
 //  analysisDebugLevel=0;
   Dbg::init("LOOP ANALYSIS TEST", ".", "index.html");
@@ -156,20 +156,22 @@ int main(int argc, char *argv[])
   CallAnalysis* callA = NULL;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-  std::cerr << "\n## Going to create MPI_ICFG changes today 21th of September";
-  MpiAnalysis::MPICFG mpi_cfg((SgNode*) project,
-                              (IntraProceduralDataflow*) &cpA,
-                              (RankAnalysis*)rankA,
-                              (LoopAnalysis*)&loopA,
-                              (CallAnalysis*)callA,
-                              true);
+  std::cerr << "\n## Going to create MPI_ICFG changes today 20th of November";
+//  MpiAnalysis::MPICFG mpi_cfg((SgNode*) project,
+//                              (IntraProceduralDataflow*) &cpA,
+//                              (RankAnalysis*)rankA,
+//                              (LoopAnalysis*)&loopA,
+//                              (CallAnalysis*)callA,
+//                              true);
+//MPIAnalysis::MPICFG mpi_cfg(project, &cpa, NULL, &loopA, NULL, true);
+//Calling with cpa and loop Analysis only
+  MpiAnalysis::MPICFG mpi_cfg(project, &cpA, rankA, &loopA, callA, true);
   mpi_cfg.build();
 
 //  std::cerr << "\n## Successfully created MPI_ICFG";
 //  mpi_cfg.setRankInfo(radfn);
 //  mpi_cfg.mpicfgToDot();
-
-  std::cerr << "\n## Dumped out the full MPI_CFG Communication Graph as";
+//  std::cerr << "\n## Dumped out the full MPI_CFG Communication Graph as";
   mpi_cfg.mpiCommToDot();
   std::cerr << "\n## Dumped out MPI communication as Dot graph\n";
 

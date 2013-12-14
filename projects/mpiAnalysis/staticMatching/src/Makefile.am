@@ -8,15 +8,21 @@ include $(top_srcdir)/projects/mpiAnalysis/common.deb.libs
 #	mpiUtils \
 #	rankAnalysis
 
-bin_PROGRAMS = mpiAnalysis rankAnalysisTest loopAnalysisTest rankMpiCallListTest
+bin_PROGRAMS = mpiAnalysis rankAnalysisTest loopAnalysisTest rankMpiCallListTest constPropAnalysisTest
 
 mpiAnalysis_SOURCES = \
 	mpiAnalysis.cpp \
 	mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h \
+	mpiCFG/MpiCommunication.cpp mpiCFG/MpiCommunication.h \
 	constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h \
 	rankAnalysis/rankAnalysis.cpp rankAnalysis/rankAnalysis.h \
 	rankAnalysis/pSet.cpp rankAnalysis/pSet.h \
 	rankAnalysis/RankLattice.cpp rankAnalysis/RankLattice.h \
+	loopAnalysis/loopAnalysis.cpp loopAnalysis/loopAnalysis.h \
+	loopAnalysis/LoopLattice.cpp loopAnalysis/LoopLattice.h \
+	rankAnalysis/FinestPSetGranularity.cpp rankAnalysis/FinestPSetGranularity.h \
+	rankMpiCallList/CallAnalysis.cpp rankMpiCallList/CallAnalysis.h \
+	rankMpiCallList/CallLattice.cpp rankMpiCallList/CallLattice.h \
 	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
 
 rankAnalysisTest_SOURCES = \
@@ -30,6 +36,7 @@ rankAnalysisTest_SOURCES = \
 loopAnalysisTest_SOURCES = \
 	loopAnalysisTest.cpp \
 	mpiCFG/mpiCFG.cpp mpiCFG/mpiCFG.h \
+	mpiCFG/MpiCommunication.cpp mpiCFG/MpiCommunication.h \
 	constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h \
 	loopAnalysis/loopAnalysis.cpp loopAnalysis/loopAnalysis.h \
 	loopAnalysis/LoopLattice.cpp loopAnalysis/LoopLattice.h \
@@ -49,6 +56,10 @@ rankMpiCallListTest_SOURCES = \
 	rankMpiCallList/CallAnalysis.cpp rankMpiCallList/CallAnalysis.h \
 	rankMpiCallList/CallLattice.cpp rankMpiCallList/CallLattice.h \
 	mpiUtils/mpiUtils.cpp mpiUtils/mpiUtils.h
+	
+constPropAnalysisTest_SOURCES = \
+    ConstantPropTest.cpp \
+	constPropAnalysis/constantPropagationAnalysis.cpp constPropAnalysis/constantPropagationAnalysis.h
 	
 #liveDeadA_SOURCES = liveDeadA.C
 

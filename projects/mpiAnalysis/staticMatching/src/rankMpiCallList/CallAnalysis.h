@@ -25,11 +25,25 @@ protected:
                        //!< Seems to be required by the Lattice Constructor. ?
   SgProject* project_;    //!< SgProject in order to perform NodeQuery.
 
+  /**
+   *
+   */
   RankAnalysis* rank_a_;
+
+  /**
+   *
+   */
   FinestPSetGranularity* finest_a_;
+
+  /**
+   *
+   */
   LoopAnalysis* loop_a_;
-  //TODO: do we need this information?
-//  std::multimap<CFGNode, CFGNode> mpi_connections_;
+
+  /**
+   *
+   */
+  CallLattice cl_;
 
 public:
   /**
@@ -52,21 +66,35 @@ public:
   bool InitCallAnalysis();
 #endif
 
-  //! Generate the initial lattice state for the given dataflow node, in the
-  //! given function, with the given NodeState.
+  /**
+   * @brief Generate the initial lattice state.
+   * @param func
+   * @param n   The DataflowNode that is being processed.
+   * @param state
+   * @param initLattices
+   * @param initFacts
+   * Generate the initial lattice state for the given DataflowNode, in the
+   * given function, with the given NodeState.
+   */
   void genInitState(const Function& func, const DataflowNode& n,
                     const NodeState& state, std::vector<Lattice*>& initLattices,
                     std::vector<NodeFact*>& initFacts);
 
-  //! The transfer function that is applied to every node in the CFG
-  //
-  //! n - The dataflow node that is being processed
-  //! state - The NodeState  object that describes the state of the node, as
-  //!         established by earlier analysis passes
-  //! dfInfo - The Lattices that this transfer function operates on. The
-  //!            funtion takes theses lattices as input and overwrites the with
+  /**
+   * @brief The transfer function that is applied to every node in the CFG.
+   * @param n  The DataflowNode that is being processed.
+   * @param state   The NodeState  object that describes the state of the node, as
+   *                established by earlier analysis passes.
+   * @param dfInfo   The Lattices that this transfer function operates on.
+   */
   bool transfer(const Function& func, const DataflowNode& n,
                 NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+  /**
+   * @brief Get the MPI function call list.
+   * @return Function call list is represented by the CallLattice.
+   */
+  CallLattice getPSetCallList();
 };
 
 #endif /*CALL_ANALYSIS_H*/

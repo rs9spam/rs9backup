@@ -38,6 +38,16 @@ namespace MpiUtils
   /**
    *
    */
+  bool isMPIFinalize(const DataflowNode& n);
+
+  /**
+   *
+   */
+  bool isMPIFinalize(const SgNode* node);
+
+  /**
+   *
+   */
   bool isMPICommRank(const SgNode* node);
 
   /**
@@ -80,84 +90,50 @@ namespace MpiUtils
    * @brief Returns the SgNode of the False successor DataflowNode of n.
    */
   SgNode* getFalseSuccessor(const DataflowNode& n);
-}
 
-#endif /* MPIUTILS_H_ */
+  /**
+   *
+   */
+  SgExpression* getExpAt(const SgExpressionPtrList& argsptr ,unsigned int arg_nr);
 
-
-
-#if 0
-
-#ifndef MPIUTILS_H_
-#define MPIUTILS_H_
-
-#include "dataflow.h"
-
-class MpiUtils
-{
-public:
-  MpiUtils() {};
-  //! initializes the mpiUtils module
-  //static void initMPIUtil(SgProject* project_arg);
 
 //=======================================================================================
   /**
-   * @brief Check if MPI communication function call.
-   * @param node SgNode* to be checked if MPI_Communication_Function_Call.
-   * @return Returns true if it is any MPI_Send/Recv/Barrier/I_Send/I_Recv/Broadcast.
+   * DEBRECATED
+   * @brief Find DataflowNode in vector.
    */
-  static bool isMPIFunctionCall(const SgNode* node) const;
+  DataflowNode* findDataflowNode_(const CFGNode& n, std::vector<DataflowNode> dfvec);
+
+  /**
+   * DEBRECATED
+   * @brief Find DataflowNode in vector.
+   */
+  DataflowNode* findDataflowNode_(const SgNode* n, unsigned int idx,
+                                 std::vector<DataflowNode> dfvec);
+
+  /**
+   * @brief Find DataflowNode in vector.
+   */
+  bool hasDataflowNode(const CFGNode& n, std::vector<DataflowNode> dfvec);
+
+  /**
+   * @brief Find DataflowNode in vector.
+   */
+  bool hasDataflowNode(const SgNode* n, unsigned int idx, std::vector<DataflowNode> dfvec);
+
 
   /**
    *
    */
-  static bool isMPIInit(const DataflowNode& n) const;
+  DataflowNode getDataflowNode(const CFGNode& n, std::vector<DataflowNode> dfvec);
 
   /**
    *
    */
-  static bool isMPIInit(const SgNode* node) const;
+  DataflowNode getDataflowNode(/*const*/ SgNode* n, unsigned int idx,
+                               std::vector<DataflowNode> dfvec);
 
-  /**
-   *
-   */
-  static bool isMPICommRank(const SgNode* node) const;
 
-  /**
-   *
-   */
-  static bool isMPICommSize(const SgNode* node) const;
-
-  /**
-   * @brief Check if SgFunctionCall node is of type MPI_Recv, MPI_Irecv.
-   * @param expr Checks if the SgNode is a valid MPI_Recv node.
-   * @return True if expr is MPI_Recv node.
-   */
-  static bool isMPIRecv(const SgNode* node) const;
-
-  /**
-   * @brief Check if SgFunctionCall node is of type MPI Send, MPI_Isend.
-   * @param expr Checks if the SgNode is a valid MPI_Send node.
-   * @return True if expr is MPI_Send node.
-   */
-  static bool isMPISend(const SgNode* node) const;
-
-  /**
-   *
-   */
-  static bool isLoopStmt(const DataflowNode& n) const;
-#if 0
-  /**
-   *
-   */
-  static bool isFalseSuccessor(const CFGNode* this_n,
-                               const CFGNode* that_n) const;
-#endif
-  //! Returns the SgNode of the True successor DataflowNode of n.
-  static SgNode* getTrueSuccessor(const DataflowNode& n) const;
-  //! Returns the SgNode of the False successor DataflowNode of n.
-  static SgNode* getFalseSuccessor(const DataflowNode& n) const;
-};
+}
 
 #endif /* MPIUTILS_H_ */
-#endif

@@ -127,27 +127,38 @@ class ConstantPropagationAnalysisTransfer : public VariableStateTransfer<Constan
 
 
 class ConstantPropagationAnalysis : public IntraFWDataflow
-   {
-     protected:
-          static std::map<varID, Lattice*> constVars;
-          static bool constVars_init;
-	
-       // The LiveDeadVarsAnalysis that identifies the live/dead state of all application variables.
-       // Needed to create a FiniteVarsExprsProductLattice.
-       //TODO the justification is weak. Can we have a refactored fuction/analysis to just create a FiniteVarsExprsProductLattice??
-       // It is not intutive to run liveness analysis before running constant propagation.
-          LiveDeadVarsAnalysis* ldva; 
-	
-     public:
-          ConstantPropagationAnalysis(LiveDeadVarsAnalysis* ldva);
+{
+protected:
+  static std::map<varID, Lattice*> constVars;
+  static bool constVars_init;
 
-       // generates the initial lattice state for the given dataflow node, in the given function, with the given NodeState
-          void genInitState(const Function& func, const DataflowNode& n, const NodeState& state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
-	
-          bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+// The LiveDeadVarsAnalysis that identifies the live/dead state of all application
+// variables is needed to create a FiniteVarsExprsProductLattice.
+// TODO: This justification is weak. Can we have a refactored function/analysis to just
+//       create a FiniteVarsExprsProductLattice?
+//       It's not intuitive to run liveness analysis before running constant propagation.
+  LiveDeadVarsAnalysis* ldva;
 
-          boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
-   };
+public:
+  ConstantPropagationAnalysis(LiveDeadVarsAnalysis* ldva);
+
+  /**
+   * Generates the initial lattice state for the given DataflowNode,
+   * in the given function, with the given NodeState.
+   */
+  void genInitState(const Function& func, const DataflowNode& n,
+                    const NodeState& state, std::vector<Lattice*>& initLattices,
+                    std::vector<NodeFact*>& initFacts);
+
+  bool transfer(const Function& func, const DataflowNode& n, NodeState& state,
+                const std::vector<Lattice*>& dfInfo);
+
+  boost::shared_ptr<IntraDFTransferVisitor>
+      getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state,
+                         const std::vector<Lattice*>& dfInfo);
+
+  std::vector<DataflowNode> getDataFlowNodeVector();
+};
 
 
 #endif

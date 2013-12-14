@@ -3,7 +3,6 @@
 #include "rankAnalysis/rankAnalysis.h"
 #include "rankAnalysis/pSet.h"
 
-
 //=======================================================================================
 void FinestPSetGranularity::visit(const Function& func,
                                   const DataflowNode& n,
@@ -86,16 +85,58 @@ void FinestPSetGranularity::buildPSets()
       all_psets_.push_back(PSet(false, lb, hb));
     }
   }
+  fillWithMissingProcesses();
 }
 
 //=======================================================================================
-std::vector<PSet> FinestPSetGranularity::getPSets()
+void FinestPSetGranularity::fillWithMissingProcesses()
 {
-  return all_psets_;
+  std::vector<PSet> queue;
+  std::vector<PSet>::iterator it_l;
+  std::vector<PSet>::iterator it_h;
+
+  for(it_l = all_psets_.begin(); it_l != all_psets_.end(); ++it_l)
+  {
+    if(it_l == all_psets_.begin())
+    {
+      //check if first lower bound is 0;
+      if(it_l->getLBound() != 0)
+      {
+        _Bound_ lb = _Bound_(0);
+        _Bound_ hb = _Bound_(it_l->getLBound() - 1);
+        queue.push_back(PSet(false, lb, hb));
+      }
+    }
+
+    //if it.hb < it++ lb
+    it_h = it_l;
+    it_h++;
+    if(it_h != all_psets_.end())
+    {
+      if((it_l->getHBound() + 1) < it_h->getLBound())
+      {
+        _Bound_ lb = _Bound_(it_l->getHBound() + 1);
+        _Bound_ hb = _Bound_(it_h->getLBound() - 1);
+        queue.push_back(PSet(false, lb, hb));
+      }
+    }
+    else
+    {
+      //check if last upper bound is max.
+      _Bound_ max = _Bound_(false, 1,1,-1);
+      if(it_l->getHBound() != max)
+      {
+        _Bound_ lb = _Bound_(it_l->getHBound() + 1);
+        _Bound_ hb = max;
+        queue.push_back(PSet(false, lb, hb));
+      }
+    }
+  }
+  all_psets_.insert(all_psets_.end(), queue.begin(), queue.end());
+  std::sort(all_psets_.begin(), all_psets_.end());
 }
 
 //=======================================================================================
-//TODO: should I call getPSets  inside the print function?????
 string FinestPSetGranularity::toStr() const
 {
     ostringstream out;

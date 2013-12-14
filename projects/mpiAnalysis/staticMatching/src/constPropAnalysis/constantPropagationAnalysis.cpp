@@ -500,40 +500,82 @@ ConstantPropagationAnalysisTransfer::ConstantPropagationAnalysisTransfer(const F
 //                     ConstantPropagationAnalysis
 // **********************************************************************
 
+//=======================================================================================
 ConstantPropagationAnalysis::ConstantPropagationAnalysis(LiveDeadVarsAnalysis* ldva)
-   {
-     this->ldva = ldva;
-   }
+{
+  this->ldva = ldva;
+}
 
-// generates the initial lattice state for the given dataflow node, in the given function, with the given NodeState
-void
-ConstantPropagationAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts)
-   {
-  // ???
-  // vector<Lattice*> initLattices;
-	map<varID, Lattice*> emptyM;
-	// the finite vars exprs product lattice is initialized based on the result of liveness analysis (ldva), but why???
-	FiniteVarsExprsProductLattice* l = new FiniteVarsExprsProductLattice((Lattice*)new ConstantPropagationLattice(), emptyM/*genConstVarLattices()*/, 
-	                                                                     (Lattice*)NULL, ldva, /*func, */n, state);         
-// Liao, 7/1/2012. I don't think constant propagation's lattice initialization should be based on live variables only. So pass NULL to ldva.
-//     	                                                                     (Lattice*)NULL, NULL, /*func, */n, state);         
-	//Dbg::dbg << "DivAnalysis::genInitState, returning l="<<l<<" n=<"<<Dbg::escape(n.getNode()->unparseToString())<<" | "<<n.getNode()->class_name()<<" | "<<n.getIndex()<<">\n";
-	//Dbg::dbg << "    l="<<l->str("    ")<<"\n";
-     initLattices.push_back(l);
-   }
+//=======================================================================================
+// generates the initial lattice state for the given DataflowNode, in the given function,
+// with the given NodeState.
+void ConstantPropagationAnalysis::genInitState(const Function& func,
+                                               const DataflowNode& n,
+                                               const NodeState& state,
+                                               std::vector<Lattice*>& initLattices,
+                                               std::vector<NodeFact*>& initFacts)
+{
+//  ???
+//  vector<Lattice*> initLattices;
+  map<varID, Lattice*> emptyM;
+//  the finite vars exprs product lattice is initialized based on the result of
+//  liveness analysis (ldva), but why???
+  FiniteVarsExprsProductLattice* l =
+      new FiniteVarsExprsProductLattice((Lattice*)new ConstantPropagationLattice(),
+                                        emptyM/*genConstVarLattices()*/,
+                                        (Lattice*)NULL, ldva, /*func, */n, state);
+//  Liao, 7/1/2012. I don't think constant propagation's lattice initialization should
+//  be based on live variables only. So pass NULL to ldva.
+//                                      (Lattice*)NULL, NULL, /*func, */n, state);
+//  Dbg::dbg << "DivAnalysis::genInitState, returning l=" << l << " n=<"
+//           << Dbg::escape(n.getNode()->unparseToString()) << " | "
+//           << n.getNode()->class_name() << " | " << n.getIndex() << ">\n";
+//  Dbg::dbg << "    l=" << l->str("    ") << "\n";
+  initLattices.push_back(l);
+}
 
-	
-bool
-ConstantPropagationAnalysis::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo)
-   {
-     assert(0); 
-     return false;
-   }
+//=======================================================================================
+bool ConstantPropagationAnalysis::transfer(const Function& func,
+                                           const DataflowNode& n,
+                                           NodeState& state,
+                                           const std::vector<Lattice*>& dfInfo)
+{
+  assert(0);
+  return false;
+}
 
+//=======================================================================================
 boost::shared_ptr<IntraDFTransferVisitor>
-ConstantPropagationAnalysis::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo)
-   {
-  // Why is the boost shared pointer used here?
-     return boost::shared_ptr<IntraDFTransferVisitor>(new ConstantPropagationAnalysisTransfer(func, n, state, dfInfo));
-   }
+    ConstantPropagationAnalysis::getTransferVisitor(const Function& func,
+                                                    const DataflowNode& n,
+                                                    NodeState& state,
+                                                    const std::vector<Lattice*>& dfInfo)
+{
+// Why is the boost shared pointer used here?
+  return boost::shared_ptr<IntraDFTransferVisitor>
+      (new ConstantPropagationAnalysisTransfer(func, n, state, dfInfo));
+}
 
+//=======================================================================================
+std::vector<DataflowNode>
+ConstantPropagationAnalysis::getDataFlowNodeVector()
+{
+  std::vector<DataflowNode> df_vec;
+
+  set<FunctionState*> allFuncs = FunctionState::getAllDefinedFuncs();
+
+  // iterate over all functions with bodies
+  set<FunctionState*>::iterator f_it;
+  for(f_it = allFuncs.begin(); f_it != allFuncs.end(); f_it++)
+  {
+    FunctionState* fState = *f_it;
+
+    DataflowNode funcCFGStart =
+        cfgUtils::getFuncStartCFG(fState->func.get_definition(), filter);
+
+    // iterate over all the nodes in this function
+    for(VirtualCFG::iterator it(funcCFGStart); it != VirtualCFG::dataflow::end(); it++)
+      df_vec.push_back(*it);
+  }
+  return df_vec;
+}

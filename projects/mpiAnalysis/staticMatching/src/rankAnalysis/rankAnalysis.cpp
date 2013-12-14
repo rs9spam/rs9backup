@@ -58,9 +58,9 @@ bool RankAnalysis::SetMPICommunicationInfo()
       if(isSgAddressOfOp(arg1)
          && varID::isValidVarExp(isSgAddressOfOp(arg1)->get_operand()))
       {
-        std::cerr << "\nSet Rank Variable to ........ ";
         rank_var_ = SgExpr2Var(isSgAddressOfOp(arg1)->get_operand());
-        std::cerr << rank_var_.str() << ".......";
+        if(rrankAnalysisDebugLevel >= 1)
+          std::cerr << "\nSet Rank Variable to: " << rank_var_.str();
         found_rank = true;
       }
       else
@@ -82,9 +82,9 @@ bool RankAnalysis::SetMPICommunicationInfo()
       // look at MPI_Comm_size's second argument and record that it depends on the number of processes
       if(isSgAddressOfOp(arg1) && varID::isValidVarExp(isSgAddressOfOp(arg1)->get_operand()))
       {
-        std::cerr << "\nSet Size Variable to ........ ";
         size_var_ = SgExpr2Var(isSgAddressOfOp(arg1)->get_operand());
-        std::cerr << size_var_ << ".......";
+        if(rrankAnalysisDebugLevel >= 1)
+          std::cerr << "\nSet Size Variable to: " << size_var_;
         found_size = true;
       }
       else
@@ -245,9 +245,9 @@ bool RankAnalysis::transfer(const Function& func, const DataflowNode& n,
           size_t nr = sgln->get_numberOfTraversalSuccessors();
           for(size_t idx = 0; idx < nr; ++idx)
           {
-            modified = modified
-                || lattice->pushPSetToOutVec(true_sets,
-                                             sgln->get_traversalSuccessorByIndex(idx));
+            modified = lattice->pushPSetToOutVec(
+                                     true_sets, sgln->get_traversalSuccessorByIndex(idx))
+                       || modified;
           }
         }
         else
@@ -350,8 +350,10 @@ bool RankAnalysis::containsMPIRankVar(/*const*/ SgNode* node) const
   {
     SgLocatedNode* sgln = isSgLocatedNode(node);
     size_t nr = sgln->get_numberOfTraversalSuccessors();
+#if 0
     std::cerr<< "\nNo SgVarRefExp, but " << node->class_name() << " has "
              << nr << " successor nodes!";
+#endif
     for(size_t idx = 0; idx < nr; ++idx)
     {
       return containsMPIRankVar(isSgLocatedNode(node)
@@ -391,19 +393,12 @@ std::vector<DataflowNode> RankAnalysis::getDFNodes() const
    ROSE_ASSERT (!"Cannot get nodes for project without main function");
 
   DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(main_def, filter);
-  DataflowNode funcCFGEnd = cfgUtils::getFuncEndCFG(main_def, filter);
 
   // iterate over all the nodes in this function
   for(VirtualCFG::iterator it(funcCFGStart); it!=VirtualCFG::dataflow::end(); it++)
   {
     DataflowNode n = *it;
     nodes.push_back(n);
-//    const vector<NodeState*> nodeStates = NodeState::getNodeStates(n);
-//    // Visit each CFG node
-//    for(vector<NodeState*>::const_iterator itS = nodeStates.begin();
-//        itS!=nodeStates.end();
-//        itS++)
-//      visit(func, n, *(*itS));
   }
   return nodes;
 }
